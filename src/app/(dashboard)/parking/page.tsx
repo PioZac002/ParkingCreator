@@ -24,7 +24,7 @@ export default async function ParkingPage() {
       },
       orderBy: { number: "asc" },
     }),
-    // All layouts for the user's estate
+    // All layouts for the user's estate (with current availability + active reservation)
     estateId
       ? prisma.parkingLayout.findMany({
           where: { estateId },
@@ -34,6 +34,10 @@ export default async function ParkingPage() {
                 availabilities: {
                   where: { endTime: { gt: new Date() } },
                   orderBy: { startTime: "asc" },
+                  take: 1,
+                },
+                reservations: {
+                  where: { status: { not: "CANCELLED" }, startTime: { lte: new Date() }, endTime: { gt: new Date() } },
                   take: 1,
                 },
               },

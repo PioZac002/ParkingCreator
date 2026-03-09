@@ -16,6 +16,7 @@ type Spot = {
   height: number;
   ownerId: string | null;
   availabilities: Availability[];
+  reservations?: { id: string }[];
 };
 
 type Layout = {
@@ -63,6 +64,8 @@ function toDatetimeLocal(d: Date): string {
 }
 
 function getSpotStatus(spot: Spot | MySpot, now: Date): "occupied" | "available" | "reserved" | "unavailable" {
+  // Active non-cancelled reservation right now → reserved
+  if ("reservations" in spot && spot.reservations && spot.reservations.length > 0) return "reserved";
   const active = spot.availabilities[0];
   if (!active) return "occupied";
   const end = toDate(active.endTime);
