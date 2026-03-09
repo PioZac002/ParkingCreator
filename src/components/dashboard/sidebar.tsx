@@ -13,8 +13,6 @@ type NavItem = {
 
 const adminNav: NavItem[] = [
   { href: "/admin", icon: "📊", label: "Dashboard" },
-  { href: "/admin/estates", icon: "🏘️", label: "Osiedla" },
-  { href: "/admin/users", icon: "👥", label: "Użytkownicy" },
 ];
 
 const managerNav: NavItem[] = [

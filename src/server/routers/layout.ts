@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, managerProcedure, protectedProcedure } from "../trpc";
 
 const spotSchema = z.object({
@@ -139,5 +140,44 @@ export const layoutRouter = router({
     .input(z.object({ id: z.string().uuid() }))
     .mutation(async ({ ctx, input }) => {
       return ctx.prisma.parkingLayout.delete({ where: { id: input.id } });
+    }),
+
+  // Assign or unassign a spot owner (userId = null to unassign)
+  assignSpotOwner: managerProcedure
+    .input(z.object({ spotId: z.string().uuid(), userId: z.string().uuid().nullable() }))
+    .mutation(async ({ ctx, input }) => {
+      const spot = await ctx.prisma.parkingSpot.findUnique({
+        where: { id: input.spotId },
+        include: { layout: { select: { estateId: true } } },
+      });
+      if (!spot) throw new TRPCError({ code: "NOT_FOUND" });
+
+      const manager = await ctx.prisma.user.findUnique({
+        where: { id: ctx.session.user.id },
+        select: { managedEstates: { where: { id: spot.layout.estateId }, select: { id: true } } },
+      });
+      if (!manager?.managedEstates.length) throw new TRPCError({ code: "FORBIDDEN" });
+
+      return ctx.prisma.parkingSpot.update({
+        where: { id: input.spotId },
+        data: { ownerId: input.userId },
+      });
+    }),
+
+  // List unassigned spots for an estate
+  listUnassigned: managerProcedure
+    .input(z.object({ estateId: z.string().uuid() }))
+    .query(async ({ ctx, input }) => {
+      const manager = await ctx.prisma.user.findUnique({
+        where: { id: ctx.session.user.id },
+        select: { managedEstates: { where: { id: input.estateId }, select: { id: true } } },
+      });
+      if (!manager?.managedEstates.length) throw new TRPCError({ code: "FORBIDDEN" });
+
+      return ctx.prisma.parkingSpot.findMany({
+        where: { layout: { estateId: input.estateId }, ownerId: null },
+        include: { layout: { select: { name: true, zone: true } } },
+        orderBy: { number: "asc" },
+      });
     }),
 });
