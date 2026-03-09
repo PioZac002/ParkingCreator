@@ -4,6 +4,7 @@ import { userRouter } from "./user";
 import { importRouter } from "./import";
 import { layoutRouter } from "./layout";
 import { availabilityRouter } from "./availability";
+import { reservationRouter } from "./reservation";
 
 export const appRouter = router({
   estate: estateRouter,
@@ -11,6 +12,7 @@ export const appRouter = router({
   import: importRouter,
   layout: layoutRouter,
   availability: availabilityRouter,
+  reservation: reservationRouter,
 });
 
 export type AppRouter = typeof appRouter;

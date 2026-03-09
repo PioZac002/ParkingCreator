@@ -22,6 +22,7 @@ const managerNav: NavItem[] = [
   { href: "/manager/import", icon: "📥", label: "Import mieszkańców" },
   { href: "/manager/editor", icon: "🗺️", label: "Kreator parkingu" },
   { href: "/manager/users", icon: "👥", label: "Mieszkańcy" },
+  { href: "/manager/reservations", icon: "📅", label: "Rezerwacje" },
 ];
 
 const residentNav: NavItem[] = [
