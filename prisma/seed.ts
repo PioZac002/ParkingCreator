@@ -259,6 +259,43 @@ async function main() {
   }
 
   console.log("✅ Parking spots created");
+
+  // ─── Demo Availabilities ────────────────────────────
+  const now = new Date();
+  const in3Days = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+  const in7Days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  // resident1's A-02 is available for the next 7 days (demo: can be reserved)
+  const spots1 = await prisma.parkingSpot.findMany({ where: { layoutId: layout1.id }, orderBy: { number: "asc" } });
+  const spotA02 = spots1.find((s) => s.number === "A-02");
+  const spotA03 = spots1.find((s) => s.number === "A-03");
+
+  if (spotA02) {
+    await prisma.availability.create({
+      data: { spotId: spotA02.id, status: "AVAILABLE", startTime: now, endTime: in7Days },
+    });
+  }
+  // resident2's A-03 is unavailable for next 3 days (on vacation)
+  if (spotA03) {
+    await prisma.availability.create({
+      data: { spotId: spotA03.id, status: "UNAVAILABLE", startTime: now, endTime: in3Days },
+    });
+  }
+
+  // Demo pending reservation: resident2 reserved A-02 (will show in manager's queue)
+  if (spotA02) {
+    await prisma.reservation.create({
+      data: {
+        spotId: spotA02.id,
+        userId: resident2.id,
+        startTime: in3Days,
+        endTime: in7Days,
+        status: "PENDING",
+      },
+    });
+  }
+
+  console.log("✅ Demo availabilities and reservations created");
   console.log("🎉 Seed completed successfully!");
   console.log("");
   console.log("Demo accounts (password: password123):");
