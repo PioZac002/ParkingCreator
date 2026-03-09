@@ -62,6 +62,26 @@ export async function sendReservationConfirmed(data: ReservationData) {
   });
 }
 
+export async function sendActivationEmail(data: { to: string; name: string; activationUrl: string }) {
+  if (!process.env.RESEND_API_KEY) return;
+  await resend.emails.send({
+    from: FROM,
+    to: data.to,
+    subject: "Aktywuj swoje konto w ParkingCreator",
+    html: baseHtml(
+      `Witaj, ${data.name}!`,
+      `<p>Twoje konto w systemie zarządzania parkingiem zostało utworzone.</p>
+       <p>Aby aktywować konto i ustawić hasło, kliknij poniższy link:</p>
+       <p style="margin:24px 0">
+         <a href="${data.activationUrl}" style="background:#6c5ce7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+           Aktywuj konto
+         </a>
+       </p>
+       <p style="font-size:12px;color:#888">Link wygasa po 48 godzinach.<br/>Jeśli to nie Ty, zignoruj tę wiadomość.</p>`
+    ),
+  });
+}
+
 export async function sendReservationCancelled(data: ReservationData) {
   if (!process.env.RESEND_API_KEY) return;
   await resend.emails.send({

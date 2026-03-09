@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, managerProcedure } from "../trpc";
 import { importUsers } from "../services/importService";
 
@@ -16,10 +17,15 @@ export const importRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
-      // Managers can only import to their own estate
-      const userEstateId = (ctx.session.user as Record<string, unknown>).estateId as string | null;
-      if (ctx.session.user.role === "MANAGER" && userEstateId !== input.estateId) {
-        throw new Error("Brak dostępu do tego osiedla");
+      // Managers can only import to estates they manage
+      if (ctx.session.user.role === "MANAGER") {
+        const manager = await ctx.prisma.user.findUnique({
+          where: { id: ctx.session.user.id },
+          select: { managedEstates: { where: { id: input.estateId }, select: { id: true } } },
+        });
+        if (!manager?.managedEstates.length) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Brak dostępu do tego osiedla" });
+        }
       }
 
       return importUsers(input.users, input.estateId);

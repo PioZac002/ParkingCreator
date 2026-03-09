@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendActivationEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
@@ -59,6 +60,14 @@ export async function importUsers(
         activationTokenExpiry,
       },
     });
+
+    // Send activation email (fire-and-forget)
+    const appUrl = process.env.APP_URL || "http://localhost:3000";
+    sendActivationEmail({
+      to: email,
+      name,
+      activationUrl: `${appUrl}/activate/${activationToken}`,
+    }).catch(() => {});
 
     result.success++;
   }
