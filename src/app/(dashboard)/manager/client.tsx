@@ -38,11 +38,13 @@ export function ManagerDashboardClient({
   activeEstate,
   recentUsers,
   managerName,
+  pendingReservations,
 }: {
   managedEstates: Estate[];
   activeEstate: Estate | null;
   recentUsers: User[];
   managerName: string;
+  pendingReservations: number;
 }) {
   const router = useRouter();
 
@@ -108,34 +110,32 @@ export function ManagerDashboardClient({
 
           {/* Quick actions */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-            <Link
-              href={`/manager/import?estateId=${activeEstate.id}`}
-              className="card"
-              style={{ textDecoration: "none", textAlign: "center" }}
-            >
+            <Link href={`/manager/import?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
               <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📥</div>
               <div style={{ fontWeight: 600 }}>Import mieszkańców</div>
               <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>CSV, XLSX, TXT, JSON</div>
             </Link>
-            <Link
-              href={`/manager/editor?estateId=${activeEstate.id}`}
-              className="card"
-              style={{ textDecoration: "none", textAlign: "center" }}
-            >
+            <Link href={`/manager/editor?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
               <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🗺️</div>
               <div style={{ fontWeight: 600 }}>Kreator parkingu</div>
               <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Edytuj layout</div>
             </Link>
-            <Link
-              href={`/manager/users?estateId=${activeEstate.id}`}
-              className="card"
-              style={{ textDecoration: "none", textAlign: "center" }}
-            >
+            <Link href={`/manager/users?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
               <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>👥</div>
               <div style={{ fontWeight: 600 }}>Mieszkańcy</div>
               <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
                 {activeEstate._count.residents} użytkowników
               </div>
+            </Link>
+            <Link href={`/manager/reservations?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center", position: "relative" }}>
+              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
+              <div style={{ fontWeight: 600 }}>Rezerwacje</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Zarządzaj rezerwacjami</div>
+              {pendingReservations > 0 && (
+                <span style={{ position: "absolute", top: "0.625rem", right: "0.75rem", background: "var(--danger)", color: "#fff", borderRadius: "999px", padding: "0 6px", fontSize: "0.6875rem", fontWeight: 700, lineHeight: "1.5" }}>
+                  {pendingReservations}
+                </span>
+              )}
             </Link>
           </div>
 

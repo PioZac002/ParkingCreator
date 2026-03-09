@@ -40,15 +40,20 @@ export default async function ManagerPage({
     ? managedEstates[0]
     : null;
 
-  // Load users for active estate
-  const users = activeEstate
-    ? await prisma.user.findMany({
-        where: { estateId: activeEstate.id },
-        select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
-        orderBy: { createdAt: "desc" },
-        take: 8,
-      })
-    : [];
+  // Load users and pending reservations for active estate
+  const [users, pendingReservations] = activeEstate
+    ? await Promise.all([
+        prisma.user.findMany({
+          where: { estateId: activeEstate.id },
+          select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
+          orderBy: { createdAt: "desc" },
+          take: 8,
+        }),
+        prisma.reservation.count({
+          where: { status: "PENDING", spot: { layout: { estateId: activeEstate.id } } },
+        }),
+      ])
+    : [[], 0];
 
   return (
     <ManagerDashboardClient
@@ -56,6 +61,7 @@ export default async function ManagerPage({
       activeEstate={activeEstate}
       recentUsers={users}
       managerName={session.user.name}
+      pendingReservations={pendingReservations}
     />
   );
 }
