@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  MANAGER
+  RESIDENT
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  DISABLED
+}
+
+enum SpotType {
+  STANDARD
+  DISABLED
+  ELECTRIC
+  RESERVED
+}
+
+enum AvailabilityStatus {
+  OCCUPIED
+  AVAILABLE
+  UNAVAILABLE
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model Estate {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Residents belonging to this estate
+  residents      User[]          @relation("EstateResidents")
+  // Managers who manage this estate (many-to-many)
+  managers       User[]          @relation("EstateManagers")
+  parkingLayouts ParkingLayout[]
+
+  @@map("estates")
+}
+
+model User {
+  id                    String     @id @default(uuid())
+  email                 String     @unique
+  name                  String
+  role                  Role       @default(RESIDENT)
+  passwordHash          String
+  status                UserStatus @default(PENDING)
+  // For RESIDENT: the estate they live in. For MANAGER/SUPER_ADMIN: null.
+  estateId              String?
+  activationToken       String?    @unique
+  activationTokenExpiry DateTime?
+  createdAt             DateTime   @default(now())
+  updatedAt             DateTime   @updatedAt
+
+  // Resident belongs to one estate
+  estate         Estate?       @relation("EstateResidents", fields: [estateId], references: [id])
+  // Manager can manage multiple estates (many-to-many)
+  managedEstates Estate[]      @relation("EstateManagers")
+  // A user (resident) can own multiple parking spots
+  parkingSpots   ParkingSpot[]
+  reservations   Reservation[]
+
+  @@map("users")
+}
+
+model ParkingLayout {
+  id         String   @id @default(uuid())
+  estateId   String
+  name       String
+  zone       String?
+  gridWidth  Int      @default(20)
+  gridHeight Int      @default(20)
+  gridData   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  estate Estate        @relation(fields: [estateId], references: [id], onDelete: Cascade)
+  spots  ParkingSpot[]
+
+  @@map("parking_layouts")
+}
+
+model ParkingSpot {
+  id       String   @id @default(uuid())
+  layoutId String
+  number   String
+  ownerId  String?
+  type     SpotType @default(STANDARD)
+  posX     Float    @default(0)
+  posY     Float    @default(0)
+  width    Float    @default(1)
+  height   Float    @default(2)
+  rotation Int      @default(0)
+
+  layout        ParkingLayout  @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  owner         User?          @relation(fields: [ownerId], references: [id])
+  availabilities Availability[]
+  reservations  Reservation[]
+
+  @@map("parking_spots")
+}
+
+model Availability {
+  id        String             @id @default(uuid())
+  spotId    String
+  status    AvailabilityStatus @default(OCCUPIED)
+  startTime DateTime
+  endTime   DateTime
+  createdAt DateTime           @default(now())
+
+  spot ParkingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+
+  @@map("availabilities")
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  spotId    String
+  userId    String
+  startTime DateTime
+  endTime   DateTime
+  status    ReservationStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  spot ParkingSpot @relation(fields: [spotId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id])
+
+  @@map("reservations")
+}
