@@ -9,23 +9,37 @@ export default async function AdminPage() {
     redirect("/login");
   }
 
-  const [estateCount, userCount, spotCount, reservationCount, estates] = await Promise.all([
-    prisma.estate.count(),
-    prisma.user.count(),
-    prisma.parkingSpot.count(),
-    prisma.reservation.count(),
-    prisma.estate.findMany({
-      include: {
-        _count: { select: { users: true, parkingLayouts: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
+  const [estateCount, userCount, spotCount, reservationCount, estates, managers] =
+    await Promise.all([
+      prisma.estate.count(),
+      prisma.user.count(),
+      prisma.parkingSpot.count(),
+      prisma.reservation.count(),
+      prisma.estate.findMany({
+        include: {
+          _count: { select: { residents: true, parkingLayouts: true } },
+          managers: { select: { id: true, name: true, email: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      }),
+      prisma.user.findMany({
+        where: { role: "MANAGER" },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true,
+          managedEstates: { select: { id: true, name: true } },
+        },
+        orderBy: { name: "asc" },
+      }),
+    ]);
 
   return (
     <AdminDashboardClient
       stats={{ estateCount, userCount, spotCount, reservationCount }}
       estates={estates}
+      managers={managers}
     />
   );
 }

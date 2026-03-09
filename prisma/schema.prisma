@@ -49,7 +49,10 @@ model Estate {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  users          User[]
+  // Residents belonging to this estate
+  residents      User[]          @relation("EstateResidents")
+  // Managers who manage this estate (many-to-many)
+  managers       User[]          @relation("EstateManagers")
   parkingLayouts ParkingLayout[]
 
   @@map("estates")
@@ -62,15 +65,20 @@ model User {
   role                  Role       @default(RESIDENT)
   passwordHash          String
   status                UserStatus @default(PENDING)
+  // For RESIDENT: the estate they live in. For MANAGER/SUPER_ADMIN: null.
   estateId              String?
   activationToken       String?    @unique
   activationTokenExpiry DateTime?
   createdAt             DateTime   @default(now())
   updatedAt             DateTime   @updatedAt
 
-  estate       Estate?       @relation(fields: [estateId], references: [id])
-  parkingSpots ParkingSpot[]
-  reservations Reservation[]
+  // Resident belongs to one estate
+  estate         Estate?       @relation("EstateResidents", fields: [estateId], references: [id])
+  // Manager can manage multiple estates (many-to-many)
+  managedEstates Estate[]      @relation("EstateManagers")
+  // A user (resident) can own multiple parking spots
+  parkingSpots   ParkingSpot[]
+  reservations   Reservation[]
 
   @@map("users")
 }

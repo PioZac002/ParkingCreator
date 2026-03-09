@@ -6,14 +6,6 @@ import "dotenv/config";
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const prisma = new PrismaClient({ adapter });
 
-// Prisma v7 enums imported from generated client
-const Role = { SUPER_ADMIN: "SUPER_ADMIN", MANAGER: "MANAGER", RESIDENT: "RESIDENT" } as const;
-const UserStatus = { PENDING: "PENDING", ACTIVE: "ACTIVE", DISABLED: "DISABLED" } as const;
-const SpotType = { STANDARD: "STANDARD", DISABLED: "DISABLED", ELECTRIC: "ELECTRIC", RESERVED: "RESERVED" } as const;
-type Role = typeof Role[keyof typeof Role];
-type UserStatus = typeof UserStatus[keyof typeof UserStatus];
-type SpotType = typeof SpotType[keyof typeof SpotType];
-
 async function main() {
   console.log("🌱 Seeding database...");
 
@@ -42,48 +34,66 @@ async function main() {
     },
   });
 
-  console.log("✅ Estates created");
-
-  // ─── Users ──────────────────────────────────────────
-  const superAdmin = await prisma.user.create({
+  const estate3 = await prisma.estate.create({
     data: {
-      email: "admin@pms.dev",
-      name: "Jan Kowalski",
-      role: Role.SUPER_ADMIN,
-      passwordHash,
-      status: UserStatus.ACTIVE,
+      name: "Osiedle Zielone",
+      address: "ul. Zielona 22, 00-300 Wrocław",
     },
   });
 
+  console.log("✅ Estates created");
+
+  // ─── Super Admin ────────────────────────────────────
+  await prisma.user.create({
+    data: {
+      email: "admin@pms.dev",
+      name: "Jan Kowalski",
+      role: "SUPER_ADMIN",
+      passwordHash,
+      status: "ACTIVE",
+      // SUPER_ADMIN has no estateId and manages all via admin panel
+    },
+  });
+
+  // ─── Managers (no estateId — they manage via managedEstates) ────
+  // manager1 manages estate1 AND estate2 (multi-estate demo)
   const manager1 = await prisma.user.create({
     data: {
       email: "zarzadca1@pms.dev",
       name: "Anna Nowak",
-      role: Role.MANAGER,
+      role: "MANAGER",
       passwordHash,
-      status: UserStatus.ACTIVE,
-      estateId: estate1.id,
+      status: "ACTIVE",
+      managedEstates: {
+        connect: [{ id: estate1.id }, { id: estate2.id }],
+      },
     },
   });
 
+  // manager2 manages only estate3
   const manager2 = await prisma.user.create({
     data: {
       email: "zarzadca2@pms.dev",
       name: "Piotr Wiśniewski",
-      role: Role.MANAGER,
+      role: "MANAGER",
       passwordHash,
-      status: UserStatus.ACTIVE,
-      estateId: estate2.id,
+      status: "ACTIVE",
+      managedEstates: {
+        connect: [{ id: estate3.id }],
+      },
     },
   });
 
+  console.log("✅ Managers created:", manager1.email, manager2.email);
+
+  // ─── Residents (have estateId, can own multiple spots) ──────────
   const resident1 = await prisma.user.create({
     data: {
       email: "mieszkaniec1@pms.dev",
       name: "Maria Kowalczyk",
-      role: Role.RESIDENT,
+      role: "RESIDENT",
       passwordHash,
-      status: UserStatus.ACTIVE,
+      status: "ACTIVE",
       estateId: estate1.id,
     },
   });
@@ -92,9 +102,9 @@ async function main() {
     data: {
       email: "mieszkaniec2@pms.dev",
       name: "Tomasz Zieliński",
-      role: Role.RESIDENT,
+      role: "RESIDENT",
       passwordHash,
-      status: UserStatus.ACTIVE,
+      status: "ACTIVE",
       estateId: estate1.id,
     },
   });
@@ -103,9 +113,9 @@ async function main() {
     data: {
       email: "mieszkaniec3@pms.dev",
       name: "Katarzyna Lewandowska",
-      role: Role.RESIDENT,
+      role: "RESIDENT",
       passwordHash,
-      status: UserStatus.ACTIVE,
+      status: "ACTIVE",
       estateId: estate2.id,
     },
   });
@@ -114,14 +124,14 @@ async function main() {
     data: {
       email: "mieszkaniec4@pms.dev",
       name: "Michał Szymański",
-      role: Role.RESIDENT,
+      role: "RESIDENT",
       passwordHash,
-      status: UserStatus.ACTIVE,
-      estateId: estate2.id,
+      status: "ACTIVE",
+      estateId: estate3.id,
     },
   });
 
-  console.log("✅ Users created");
+  console.log("✅ Residents created");
 
   // ─── Parking Layouts ────────────────────────────────
   const layout1 = await prisma.parkingLayout.create({
@@ -133,8 +143,8 @@ async function main() {
       gridHeight: 20,
       gridData: {
         obstacles: [
-          { id: "wall-1", type: "wall", x: 0, y: 0, width: 30, height: 0.2 },
-          { id: "wall-2", type: "wall", x: 0, y: 19.8, width: 30, height: 0.2 },
+          { id: "wall-top", type: "wall", x: 0, y: 0, width: 30, height: 0.3 },
+          { id: "wall-bottom", type: "wall", x: 0, y: 19.7, width: 30, height: 0.3 },
           { id: "road-1", type: "road", x: 0, y: 9, width: 30, height: 2 },
         ],
       },
@@ -152,21 +162,31 @@ async function main() {
         obstacles: [
           { id: "pillar-1", type: "pillar", x: 6, y: 4, width: 0.5, height: 0.5 },
           { id: "pillar-2", type: "pillar", x: 12, y: 4, width: 0.5, height: 0.5 },
-          { id: "pillar-3", type: "pillar", x: 18, y: 4, width: 0.5, height: 0.5 },
           { id: "road-1", type: "road", x: 0, y: 7, width: 25, height: 1.5 },
         ],
       },
     },
   });
 
+  const layout3 = await prisma.parkingLayout.create({
+    data: {
+      estateId: estate3.id,
+      name: "Parking podziemny",
+      zone: "P",
+      gridWidth: 20,
+      gridHeight: 15,
+      gridData: { obstacles: [] },
+    },
+  });
+
   console.log("✅ Parking layouts created");
 
   // ─── Parking Spots ──────────────────────────────────
-  // Estate 1 - Parking spots (A-01 to A-08)
-  const spotData1 = [
+  // Estate 1 — resident1 owns TWO spots (A-01 and A-02) to demo multi-spot
+  const spotsEstate1 = [
     { number: "A-01", posX: 1, posY: 1, ownerId: resident1.id },
-    { number: "A-02", posX: 4, posY: 1, ownerId: resident2.id },
-    { number: "A-03", posX: 7, posY: 1 },
+    { number: "A-02", posX: 4, posY: 1, ownerId: resident1.id }, // resident1 has 2 spots
+    { number: "A-03", posX: 7, posY: 1, ownerId: resident2.id },
     { number: "A-04", posX: 10, posY: 1 },
     { number: "A-05", posX: 1, posY: 12 },
     { number: "A-06", posX: 4, posY: 12 },
@@ -174,13 +194,13 @@ async function main() {
     { number: "A-08", posX: 10, posY: 12 },
   ];
 
-  for (const spot of spotData1) {
+  for (const spot of spotsEstate1) {
     await prisma.parkingSpot.create({
       data: {
         layoutId: layout1.id,
         number: spot.number,
-        ownerId: spot.ownerId || null,
-        type: SpotType.STANDARD,
+        ownerId: spot.ownerId ?? null,
+        type: "STANDARD",
         posX: spot.posX,
         posY: spot.posY,
         width: 2.5,
@@ -190,23 +210,45 @@ async function main() {
     });
   }
 
-  // Estate 2 - Garage spots (G-01 to G-06)
-  const spotData2 = [
-    { number: "G-01", posX: 1, posY: 1, ownerId: resident3.id },
-    { number: "G-02", posX: 4, posY: 1, ownerId: resident4.id },
-    { number: "G-03", posX: 7, posY: 1, type: SpotType.ELECTRIC },
-    { number: "G-04", posX: 1, posY: 9, type: SpotType.DISABLED },
-    { number: "G-05", posX: 4, posY: 9 },
-    { number: "G-06", posX: 7, posY: 9 },
+  // Estate 2
+  const spotsEstate2 = [
+    { number: "G-01", posX: 1, posY: 1, ownerId: resident3.id, type: "STANDARD" },
+    { number: "G-02", posX: 4, posY: 1, type: "STANDARD" },
+    { number: "G-03", posX: 7, posY: 1, type: "ELECTRIC" },
+    { number: "G-04", posX: 1, posY: 9, type: "DISABLED" },
+    { number: "G-05", posX: 4, posY: 9, type: "STANDARD" },
   ];
 
-  for (const spot of spotData2) {
+  for (const spot of spotsEstate2) {
     await prisma.parkingSpot.create({
       data: {
         layoutId: layout2.id,
         number: spot.number,
-        ownerId: spot.ownerId || null,
-        type: spot.type || SpotType.STANDARD,
+        ownerId: spot.ownerId ?? null,
+        type: spot.type as "STANDARD" | "DISABLED" | "ELECTRIC" | "RESERVED",
+        posX: spot.posX,
+        posY: spot.posY,
+        width: 2.5,
+        height: 5,
+        rotation: 0,
+      },
+    });
+  }
+
+  // Estate 3
+  const spotsEstate3 = [
+    { number: "P-01", posX: 1, posY: 1, ownerId: resident4.id },
+    { number: "P-02", posX: 4, posY: 1 },
+    { number: "P-03", posX: 7, posY: 1 },
+  ];
+
+  for (const spot of spotsEstate3) {
+    await prisma.parkingSpot.create({
+      data: {
+        layoutId: layout3.id,
+        number: spot.number,
+        ownerId: spot.ownerId ?? null,
+        type: "STANDARD",
         posX: spot.posX,
         posY: spot.posY,
         width: 2.5,
@@ -220,10 +262,11 @@ async function main() {
   console.log("🎉 Seed completed successfully!");
   console.log("");
   console.log("Demo accounts (password: password123):");
-  console.log("  Super Admin:  admin@pms.dev");
-  console.log("  Zarządca 1:   zarzadca1@pms.dev  (Osiedle Słoneczne)");
-  console.log("  Zarządca 2:   zarzadca2@pms.dev  (Osiedle Parkowe)");
-  console.log("  Mieszkaniec:  mieszkaniec1@pms.dev - mieszkaniec4@pms.dev");
+  console.log("  Super Admin:     admin@pms.dev");
+  console.log("  Zarządca 1:      zarzadca1@pms.dev  (Osiedle Słoneczne + Parkowe)");
+  console.log("  Zarządca 2:      zarzadca2@pms.dev  (Osiedle Zielone)");
+  console.log("  Mieszkaniec 1:   mieszkaniec1@pms.dev (2 miejsca: A-01, A-02)");
+  console.log("  Mieszkaniec 2-4: mieszkaniec2-4@pms.dev");
 }
 
 main()

@@ -3,46 +3,59 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ManagerDashboardClient } from "./client";
 
-export default async function ManagerPage() {
+export default async function ManagerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ estateId?: string }>;
+}) {
   const session = await auth();
-  const user = session?.user as Record<string, unknown> | undefined;
+  const role = (session?.user as Record<string, unknown>)?.role as string;
 
-  if (!user || (user.role !== "MANAGER" && user.role !== "SUPER_ADMIN")) {
+  if (!session?.user || (role !== "MANAGER" && role !== "SUPER_ADMIN")) {
     redirect("/login");
   }
 
-  const estateId = user.estateId as string | null;
+  const { estateId: estateIdParam } = await searchParams;
 
-  const [estate, users, layouts] = await Promise.all([
-    estateId
-      ? prisma.estate.findUnique({
-          where: { id: estateId },
-          include: { _count: { select: { users: true, parkingLayouts: true } } },
-        })
-      : null,
-    estateId
-      ? prisma.user.findMany({
-          where: { estateId },
-          select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
-          orderBy: { createdAt: "desc" },
-          take: 10,
-        })
-      : [],
-    estateId
-      ? prisma.parkingLayout.findMany({
-          where: { estateId },
-          include: { _count: { select: { spots: true } } },
-          orderBy: { createdAt: "desc" },
-        })
-      : [],
-  ]);
+  // Get all managed estates for this manager
+  const userWithEstates = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    include: {
+      managedEstates: {
+        include: {
+          _count: { select: { residents: true, parkingLayouts: true } },
+          parkingLayouts: { select: { id: true, name: true, zone: true, _count: { select: { spots: true } } } },
+        },
+        orderBy: { name: "asc" },
+      },
+    },
+  });
+
+  const managedEstates = userWithEstates?.managedEstates ?? [];
+
+  // Determine active estate
+  const activeEstate = estateIdParam
+    ? managedEstates.find((e) => e.id === estateIdParam) ?? null
+    : managedEstates.length === 1
+    ? managedEstates[0]
+    : null;
+
+  // Load users for active estate
+  const users = activeEstate
+    ? await prisma.user.findMany({
+        where: { estateId: activeEstate.id },
+        select: { id: true, name: true, email: true, role: true, status: true, createdAt: true },
+        orderBy: { createdAt: "desc" },
+        take: 8,
+      })
+    : [];
 
   return (
     <ManagerDashboardClient
-      estate={estate}
-      users={users}
-      layouts={layouts}
-      managerName={session!.user.name}
+      managedEstates={managedEstates}
+      activeEstate={activeEstate}
+      recentUsers={users}
+      managerName={session.user.name}
     />
   );
 }

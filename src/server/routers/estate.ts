@@ -1,32 +1,48 @@
 import { z } from "zod";
-import { router, adminProcedure, protectedProcedure } from "../trpc";
+import { router, adminProcedure, protectedProcedure, managerProcedure } from "../trpc";
 
 export const estateRouter = router({
+  // All estates (admin) or manager's managed estates
   list: protectedProcedure.query(async ({ ctx }) => {
     if (ctx.session.user.role === "SUPER_ADMIN") {
       return ctx.prisma.estate.findMany({
         include: {
-          _count: {
-            select: { users: true, parkingLayouts: true },
-          },
+          _count: { select: { residents: true, parkingLayouts: true } },
+          managers: { select: { id: true, name: true, email: true } },
         },
         orderBy: { createdAt: "desc" },
       });
     }
 
-    // Managers and residents see only their estate
-    if (ctx.session.user.estateId) {
-      return ctx.prisma.estate.findMany({
-        where: { id: ctx.session.user.estateId },
-        include: {
-          _count: {
-            select: { users: true, parkingLayouts: true },
+    // Manager sees their managed estates
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.session.user.id },
+      include: {
+        managedEstates: {
+          include: {
+            _count: { select: { residents: true, parkingLayouts: true } },
           },
         },
-      });
-    }
+      },
+    });
+    return user?.managedEstates ?? [];
+  }),
 
-    return [];
+  // Estates managed by the current manager
+  listManaged: managerProcedure.query(async ({ ctx }) => {
+    const user = await ctx.prisma.user.findUnique({
+      where: { id: ctx.session.user.id },
+      include: {
+        managedEstates: {
+          include: {
+            _count: { select: { residents: true, parkingLayouts: true } },
+            parkingLayouts: { select: { id: true, name: true, zone: true } },
+          },
+          orderBy: { name: "asc" },
+        },
+      },
+    });
+    return user?.managedEstates ?? [];
   }),
 
   getById: protectedProcedure
@@ -35,26 +51,36 @@ export const estateRouter = router({
       return ctx.prisma.estate.findUnique({
         where: { id: input.id },
         include: {
-          _count: {
-            select: { users: true, parkingLayouts: true },
-          },
-          parkingLayouts: {
-            select: { id: true, name: true, zone: true },
-          },
+          _count: { select: { residents: true, parkingLayouts: true } },
+          parkingLayouts: { select: { id: true, name: true, zone: true } },
+          managers: { select: { id: true, name: true, email: true } },
         },
       });
     }),
 
   create: adminProcedure
-    .input(
-      z.object({
-        name: z.string().min(2),
-        address: z.string().min(5),
-      })
-    )
+    .input(z.object({ name: z.string().min(2), address: z.string().min(5) }))
     .mutation(async ({ ctx, input }) => {
-      return ctx.prisma.estate.create({
-        data: input,
+      return ctx.prisma.estate.create({ data: input });
+    }),
+
+  // Assign a manager to an estate
+  assignManager: adminProcedure
+    .input(z.object({ estateId: z.string().uuid(), managerId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.estate.update({
+        where: { id: input.estateId },
+        data: { managers: { connect: { id: input.managerId } } },
+      });
+    }),
+
+  // Remove a manager from an estate
+  removeManager: adminProcedure
+    .input(z.object({ estateId: z.string().uuid(), managerId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      return ctx.prisma.estate.update({
+        where: { id: input.estateId },
+        data: { managers: { disconnect: { id: input.managerId } } },
       });
     }),
 
@@ -66,7 +92,6 @@ export const estateRouter = router({
         ctx.prisma.parkingSpot.count(),
         ctx.prisma.reservation.count(),
       ]);
-
     return { estateCount, userCount, spotCount, reservationCount };
   }),
 });

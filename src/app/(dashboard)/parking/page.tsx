@@ -10,18 +10,21 @@ export default async function ParkingPage() {
   const userId = session.user.id;
   const estateId = (session.user as Record<string, unknown>).estateId as string | null;
 
-  const [mySpot, layouts] = await Promise.all([
-    prisma.parkingSpot.findFirst({
+  const [mySpots, layouts] = await Promise.all([
+    // All spots owned by this user
+    prisma.parkingSpot.findMany({
       where: { ownerId: userId },
       include: {
-        layout: { select: { id: true, name: true, zone: true } },
+        layout: { select: { id: true, name: true, zone: true, estateId: true } },
         availabilities: {
           where: { endTime: { gt: new Date() } },
           orderBy: { startTime: "asc" },
           take: 1,
         },
       },
+      orderBy: { number: "asc" },
     }),
+    // All layouts for the user's estate
     estateId
       ? prisma.parkingLayout.findMany({
           where: { estateId },
@@ -43,7 +46,7 @@ export default async function ParkingPage() {
 
   return (
     <ParkingViewClient
-      mySpot={mySpot}
+      mySpots={mySpots}
       layouts={layouts}
       userId={userId}
     />
