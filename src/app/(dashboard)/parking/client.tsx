@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { trpc } from "@/lib/trpc";
 
-type Availability = { id: string; status: string; startTime: Date; endTime: Date };
+type Availability = { id: string; status: string; startTime: string | Date; endTime: string | Date };
 
 type Spot = {
   id: string;
@@ -47,14 +49,147 @@ const typeIcons: Record<string, string> = {
   RESERVED: "🔒",
 };
 
-function getSpotStatus(spot: Spot, now: Date): "occupied" | "available" | "reserved" | "unavailable" {
+function toDate(d: string | Date): Date {
+  return d instanceof Date ? d : new Date(d);
+}
+
+function formatDateTime(d: string | Date): string {
+  return toDate(d).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short" });
+}
+
+function toDatetimeLocal(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function getSpotStatus(spot: Spot | MySpot, now: Date): "occupied" | "available" | "reserved" | "unavailable" {
   const active = spot.availabilities[0];
   if (!active) return "occupied";
-  if (active.status === "AVAILABLE" && active.endTime > now) return "available";
+  const end = toDate(active.endTime);
+  if (end <= now) return "occupied";
+  if (active.status === "AVAILABLE") return "available";
   if (active.status === "UNAVAILABLE") return "unavailable";
   return "occupied";
 }
 
+const statusLabels: Record<string, string> = {
+  occupied: "Zajęte",
+  available: "Wolne",
+  reserved: "Zarezerwowane",
+  unavailable: "Niedostępne",
+};
+
+// --- Availability form embedded in spot card ---
+function AvailabilityControls({ spot }: { spot: MySpot }) {
+  const router = useRouter();
+  const [mode, setMode] = useState<"idle" | "available" | "unavailable">("idle");
+  const now = new Date();
+  const defaultStart = toDatetimeLocal(now);
+  const defaultEnd = toDatetimeLocal(new Date(now.getTime() + 24 * 60 * 60 * 1000));
+  const [startTime, setStartTime] = useState(defaultStart);
+  const [endTime, setEndTime] = useState(defaultEnd);
+
+  const active = spot.availabilities[0];
+  const hasActive = active && toDate(active.endTime) > now;
+
+  const setAvailability = trpc.availability.setAvailability.useMutation({
+    onSuccess: () => { setMode("idle"); router.refresh(); },
+  });
+  const clearAvailability = trpc.availability.clearAvailability.useMutation({
+    onSuccess: () => router.refresh(),
+  });
+
+  const handleSet = (status: "AVAILABLE" | "UNAVAILABLE") => {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (end <= start) return;
+    setAvailability.mutate({ spotId: spot.id, status, startTime: start, endTime: end });
+  };
+
+  if (hasActive) {
+    const statusColor = active.status === "AVAILABLE" ? "var(--spot-available)" : "var(--spot-unavailable)";
+    const statusText = active.status === "AVAILABLE" ? "Wolne" : "Niedostępne";
+    return (
+      <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-color)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ fontSize: "0.8125rem" }}>
+            <span style={{ color: statusColor, fontWeight: 600 }}>● {statusText}</span>
+            <span style={{ color: "var(--text-muted)", marginLeft: "0.5rem" }}>
+              do {formatDateTime(active.endTime)}
+            </span>
+          </div>
+          <button
+            className="btn btn-sm"
+            style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)" }}
+            onClick={() => clearAvailability.mutate({ spotId: spot.id })}
+            disabled={clearAvailability.isPending}
+          >
+            {clearAvailability.isPending ? "..." : "Anuluj"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-color)" }}>
+      {mode === "idle" ? (
+        <div style={{ display: "flex", gap: "0.375rem" }}>
+          <button
+            className="btn btn-sm btn-primary"
+            style={{ flex: 1, fontSize: "0.75rem" }}
+            onClick={() => setMode("available")}
+          >
+            🟢 Udostępnij
+          </button>
+          <button
+            className="btn btn-sm btn-secondary"
+            style={{ flex: 1, fontSize: "0.75rem" }}
+            onClick={() => setMode("unavailable")}
+          >
+            🔴 Ustaw niedostępne
+          </button>
+        </div>
+      ) : (
+        <div className="animate-fade-in">
+          <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem" }}>
+            {mode === "available" ? "🟢 Udostępnij miejsce" : "🔴 Ustaw niedostępne"}
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.375rem" }}>
+              <div>
+                <label className="label">Od</label>
+                <input className="input" type="datetime-local" style={{ fontSize: "0.75rem", padding: "0.35rem 0.5rem" }} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+              </div>
+              <div>
+                <label className="label">Do</label>
+                <input className="input" type="datetime-local" style={{ fontSize: "0.75rem", padding: "0.35rem 0.5rem" }} value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "0.375rem", marginTop: "0.125rem" }}>
+              <button
+                className="btn btn-primary btn-sm"
+                style={{ flex: 1, fontSize: "0.75rem" }}
+                disabled={setAvailability.isPending || new Date(endTime) <= new Date(startTime)}
+                onClick={() => handleSet(mode === "available" ? "AVAILABLE" : "UNAVAILABLE")}
+              >
+                {setAvailability.isPending ? "Zapisuję..." : "Zapisz"}
+              </button>
+              <button className="btn btn-ghost btn-sm" style={{ fontSize: "0.75rem" }} onClick={() => setMode("idle")}>
+                Anuluj
+              </button>
+            </div>
+            {setAvailability.isError && (
+              <p style={{ fontSize: "0.75rem", color: "var(--danger)" }}>{setAvailability.error.message}</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Parking grid ---
 function SpotGrid({ layout, userId, mySpotIds }: { layout: Layout; userId: string; mySpotIds: Set<string> }) {
   const [selected, setSelected] = useState<Spot | null>(null);
   const now = new Date();
@@ -141,8 +276,13 @@ function SpotGrid({ layout, userId, mySpotIds }: { layout: Layout; userId: strin
           </div>
           <div style={{ marginTop: "0.5rem", fontSize: "0.8125rem" }}>
             <span style={{ color: spotColors[getSpotStatus(selected, now)] }}>
-              ● {getSpotStatus(selected, now) === "available" ? "Wolne" : getSpotStatus(selected, now) === "reserved" ? "Zarezerwowane" : getSpotStatus(selected, now) === "unavailable" ? "Niedostępne" : "Zajęte"}
+              ● {statusLabels[getSpotStatus(selected, now)]}
             </span>
+            {selected.availabilities[0] && toDate(selected.availabilities[0].endTime) > now && (
+              <span style={{ color: "var(--text-muted)", marginLeft: "0.5rem" }}>
+                do {formatDateTime(selected.availabilities[0].endTime)}
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -176,35 +316,34 @@ export function ParkingViewClient({
           <h2 style={{ fontWeight: 700, fontSize: "1.125rem", marginBottom: "1rem" }}>
             Moje miejsca ({mySpots.length})
           </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem" }}>
-            {mySpots.map((spot) => (
-              <div
-                key={spot.id}
-                className="card animate-fade-in"
-                style={{ borderColor: "var(--accent-primary)", borderWidth: "1.5px", padding: "1rem 1.25rem" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-                  <div style={{ width: "44px", height: "44px", borderRadius: "var(--radius-sm)", background: "rgba(108,92,231,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.375rem", flexShrink: 0 }}>
-                    {typeIcons[spot.type] ?? "🚗"}
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <span style={{ fontWeight: 700 }}>Miejsce {spot.number}</span>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "0.75rem" }}>
+            {mySpots.map((spot) => {
+              const now = new Date();
+              const status = getSpotStatus(spot, now);
+              return (
+                <div
+                  key={spot.id}
+                  className="card animate-fade-in"
+                  style={{ borderColor: "var(--accent-primary)", borderWidth: "1.5px", padding: "1rem 1.25rem" }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
+                    <div style={{ width: "44px", height: "44px", borderRadius: "var(--radius-sm)", background: "rgba(108,92,231,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.375rem", flexShrink: 0 }}>
+                      {typeIcons[spot.type] ?? "🚗"}
                     </div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                      {spot.layout.name}{spot.layout.zone ? ` · Strefa ${spot.layout.zone}` : ""}
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700 }}>Miejsce {spot.number}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
+                        {spot.layout.name}{spot.layout.zone ? ` · Strefa ${spot.layout.zone}` : ""}
+                      </div>
                     </div>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: spotColors[status] }}>
+                      ● {statusLabels[status]}
+                    </span>
                   </div>
-                  <div>
-                    {spot.availabilities[0] ? (
-                      <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--spot-available)" }}>● Wolne</span>
-                    ) : (
-                      <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--spot-occupied)" }}>● Zajęte</span>
-                    )}
-                  </div>
+                  <AvailabilityControls spot={spot} />
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : (
