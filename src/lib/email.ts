@@ -1,7 +1,17 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "ParkingCreator <noreply@parkingcreator.pl>";
+let resend: Resend | null = null;
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn("[email] RESEND_API_KEY nie jest ustawiony — pomijam wysyłkę");
+    return null;
+  }
+  if (!resend) resend = new Resend(process.env.RESEND_API_KEY);
+  return resend;
+}
+// Domyślnie onboarding@resend.dev (działa bez weryfikacji domeny na darmowym planie).
+// Ustaw RESEND_FROM na własną domenę po jej weryfikacji w panelu Resend.
+const FROM = process.env.RESEND_FROM ?? "ParkingCreator <onboarding@resend.dev>";
 
 type ReservationData = {
   to: string;
@@ -25,8 +35,9 @@ function baseHtml(title: string, body: string) {
 }
 
 export async function sendReservationCreated(data: ReservationData) {
-  if (!process.env.RESEND_API_KEY) return;
-  await resend.emails.send({
+  const client = getResend();
+  if (!client) return;
+  await client.emails.send({
     from: FROM,
     to: data.to,
     subject: `Rezerwacja ${data.spotNumber} — Oczekuje na potwierdzenie`,
@@ -44,8 +55,9 @@ export async function sendReservationCreated(data: ReservationData) {
 }
 
 export async function sendReservationConfirmed(data: ReservationData) {
-  if (!process.env.RESEND_API_KEY) return;
-  await resend.emails.send({
+  const client = getResend();
+  if (!client) return;
+  await client.emails.send({
     from: FROM,
     to: data.to,
     subject: `Rezerwacja ${data.spotNumber} — Potwierdzona ✓`,
@@ -63,8 +75,9 @@ export async function sendReservationConfirmed(data: ReservationData) {
 }
 
 export async function sendActivationEmail(data: { to: string; name: string; activationUrl: string }) {
-  if (!process.env.RESEND_API_KEY) return;
-  await resend.emails.send({
+  const client = getResend();
+  if (!client) return;
+  await client.emails.send({
     from: FROM,
     to: data.to,
     subject: "Aktywuj swoje konto w ParkingCreator",
@@ -83,8 +96,9 @@ export async function sendActivationEmail(data: { to: string; name: string; acti
 }
 
 export async function sendReservationCancelled(data: ReservationData) {
-  if (!process.env.RESEND_API_KEY) return;
-  await resend.emails.send({
+  const client = getResend();
+  if (!client) return;
+  await client.emails.send({
     from: FROM,
     to: data.to,
     subject: `Rezerwacja ${data.spotNumber} — Anulowana`,

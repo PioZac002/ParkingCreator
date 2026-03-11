@@ -86,7 +86,7 @@ export const reservationRouter = router({
         estateName: reservation.spot.layout.estate.name,
         startTime: reservation.startTime,
         endTime: reservation.endTime,
-      }).catch(() => {});
+      }).catch((err) => console.error("[email] Błąd wysyłki:", err));
 
       return reservation;
     }),
@@ -117,7 +117,7 @@ export const reservationRouter = router({
         estateName: reservation.spot.layout.estate.name,
         startTime: reservation.startTime,
         endTime: reservation.endTime,
-      }).catch(() => {});
+      }).catch((err) => console.error("[email] Błąd wysyłki:", err));
 
       return updated;
     }),
@@ -186,8 +186,8 @@ export const reservationRouter = router({
         startTime: reservation.startTime,
         endTime: reservation.endTime,
       };
-      if (input.status === "CONFIRMED") sendReservationConfirmed(emailData).catch(() => {});
-      else sendReservationCancelled(emailData).catch(() => {});
+      if (input.status === "CONFIRMED") sendReservationConfirmed(emailData).catch((err) => console.error("[email] Błąd wysyłki:", err));
+      else sendReservationCancelled(emailData).catch((err) => console.error("[email] Błąd wysyłki:", err));
 
       return updated;
     }),

@@ -30,4 +30,19 @@ export const importRouter = router({
 
       return importUsers(input.users, input.estateId);
     }),
+
+  addSingleUser: managerProcedure
+    .input(z.object({ name: z.string().min(1), email: z.string().email(), estateId: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role === "MANAGER") {
+        const manager = await ctx.prisma.user.findUnique({
+          where: { id: ctx.session.user.id },
+          select: { managedEstates: { where: { id: input.estateId }, select: { id: true } } },
+        });
+        if (!manager?.managedEstates.length) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "Brak dostępu do tego osiedla" });
+        }
+      }
+      return importUsers([{ name: input.name, email: input.email }], input.estateId);
+    }),
 });

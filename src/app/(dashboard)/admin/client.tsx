@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { EstateIcon, UsersIcon, ParkingIcon, CalendarIcon, TrashIcon, PlusIcon, BuildingIcon } from "@/components/ui/Icons";
 
 type Manager = {
   id: string;
@@ -40,11 +42,21 @@ export function AdminDashboardClient({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [estates, setEstates] = useState(initialEstates);
-  const [managers] = useState(initialManagers);
+  const [managers, setManagers] = useState(initialManagers);
   const [formError, setFormError] = useState("");
   const [activeTab, setActiveTab] = useState<"estates" | "managers">("estates");
   const [assigningEstate, setAssigningEstate] = useState<string | null>(null);
   const [selectedManagerId, setSelectedManagerId] = useState("");
+
+  // Delete estate confirm
+  const [deleteEstateId, setDeleteEstateId] = useState<string | null>(null);
+
+  // New manager form
+  const [showManagerForm, setShowManagerForm] = useState(false);
+  const [mgrName, setMgrName] = useState("");
+  const [mgrEmail, setMgrEmail] = useState("");
+  const [mgrEstateId, setMgrEstateId] = useState("");
+  const [mgrError, setMgrError] = useState("");
 
   const createEstate = trpc.estate.create.useMutation({
     onSuccess: (newEstate) => {
@@ -58,6 +70,13 @@ export function AdminDashboardClient({
       setFormError("");
     },
     onError: (err) => setFormError(err.message),
+  });
+
+  const deleteEstate = trpc.estate.delete.useMutation({
+    onSuccess: (_, vars) => {
+      setEstates((prev) => prev.filter((e) => e.id !== vars.id));
+      setDeleteEstateId(null);
+    },
   });
 
   const assignManager = trpc.estate.assignManager.useMutation({
@@ -88,11 +107,23 @@ export function AdminDashboardClient({
     },
   });
 
+  const createManager = trpc.user.createManager.useMutation({
+    onSuccess: (newMgr) => {
+      setManagers((prev) => [...prev, newMgr]);
+      setMgrName("");
+      setMgrEmail("");
+      setMgrEstateId("");
+      setShowManagerForm(false);
+      setMgrError("");
+    },
+    onError: (err) => setMgrError(err.message),
+  });
+
   const statCards = [
-    { label: "Osiedla", value: stats.estateCount, icon: "🏘️", color: "var(--accent-primary)" },
-    { label: "Użytkownicy", value: stats.userCount, icon: "👥", color: "var(--info)" },
-    { label: "Miejsca parkingowe", value: stats.spotCount, icon: "🅿️", color: "var(--success)" },
-    { label: "Rezerwacje", value: stats.reservationCount, icon: "📅", color: "var(--warning)" },
+    { label: "Osiedla", value: stats.estateCount, icon: <EstateIcon size={24} />, color: "var(--accent-primary)" },
+    { label: "Użytkownicy", value: stats.userCount, icon: <UsersIcon size={24} />, color: "var(--info)" },
+    { label: "Miejsca parkingowe", value: stats.spotCount, icon: <ParkingIcon size={24} />, color: "var(--success)" },
+    { label: "Rezerwacje", value: stats.reservationCount, icon: <CalendarIcon size={24} />, color: "var(--warning)" },
   ];
 
   return (
@@ -104,7 +135,12 @@ export function AdminDashboardClient({
         </div>
         {activeTab === "estates" && (
           <button className="btn btn-primary" onClick={() => setShowEstateForm((v) => !v)}>
-            <span>+</span><span>Nowe osiedle</span>
+            <PlusIcon size={16} /><span>Nowe osiedle</span>
+          </button>
+        )}
+        {activeTab === "managers" && (
+          <button className="btn btn-primary" onClick={() => setShowManagerForm((v) => !v)}>
+            <PlusIcon size={16} /><span>Nowy zarządca</span>
           </button>
         )}
       </div>
@@ -118,7 +154,7 @@ export function AdminDashboardClient({
                 <div className="stat-value" style={{ color: stat.color }}>{stat.value}</div>
                 <div className="stat-label">{stat.label}</div>
               </div>
-              <span style={{ fontSize: "1.75rem", opacity: 0.6 }}>{stat.icon}</span>
+              <span style={{ opacity: 0.4, color: stat.color }}>{stat.icon}</span>
             </div>
           </div>
         ))}
@@ -131,9 +167,13 @@ export function AdminDashboardClient({
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={`btn btn-sm ${activeTab === tab ? "btn-primary" : "btn-ghost"}`}
-            style={{ borderRadius: "6px" }}
+            style={{ borderRadius: "6px", gap: "0.375rem" }}
           >
-            {tab === "estates" ? `🏘️ Osiedla (${estates.length})` : `👔 Zarządcy (${managers.length})`}
+            {tab === "estates" ? (
+              <><EstateIcon size={14} /> Osiedla ({estates.length})</>
+            ) : (
+              <><BuildingIcon size={14} /> Zarządcy ({managers.length})</>
+            )}
           </button>
         ))}
       </div>
@@ -170,7 +210,14 @@ export function AdminDashboardClient({
                     <h3 style={{ fontWeight: 600 }}>{estate.name}</h3>
                     <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{estate.address}</p>
                   </div>
-                  <span style={{ fontSize: "1.5rem" }}>🏘️</span>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ color: "var(--danger)", padding: "0.25rem" }}
+                    title="Usuń osiedle"
+                    onClick={() => setDeleteEstateId(estate.id)}
+                  >
+                    <TrashIcon size={15} />
+                  </button>
                 </div>
 
                 <div style={{ display: "flex", gap: "1.5rem", marginBottom: "0.75rem" }}>
@@ -246,36 +293,88 @@ export function AdminDashboardClient({
 
       {/* MANAGERS TAB */}
       {activeTab === "managers" && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
-          {managers.map((mgr) => (
-            <div key={mgr.id} className="card">
-              <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(116,185,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.25rem" }}>
-                  🏢
-                </div>
-                <div>
-                  <div style={{ fontWeight: 600 }}>{mgr.name}</div>
-                  <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>{mgr.email}</div>
-                </div>
+        <>
+          {showManagerForm && (
+            <div className="card animate-fade-in" style={{ marginBottom: "1.5rem", maxWidth: "500px" }}>
+              <h3 style={{ fontWeight: 600, marginBottom: "1.25rem" }}>Dodaj nowego zarządcę</h3>
+              <div style={{ marginBottom: "1rem" }}>
+                <label className="label">Imię i nazwisko</label>
+                <input className="input" placeholder="Jan Kowalski" value={mgrName} onChange={(e) => setMgrName(e.target.value)} />
               </div>
-              <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase" }}>
-                Zarządza osiedlami ({mgr.managedEstates.length})
+              <div style={{ marginBottom: "1rem" }}>
+                <label className="label">Adres email</label>
+                <input className="input" type="email" placeholder="jan@przyklad.pl" value={mgrEmail} onChange={(e) => setMgrEmail(e.target.value)} />
               </div>
-              {mgr.managedEstates.length === 0 ? (
-                <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>Brak przypisanych osiedli</p>
-              ) : (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
-                  {mgr.managedEstates.map((e) => (
-                    <span key={e.id} style={{ fontSize: "0.75rem", background: "rgba(108,92,231,0.12)", color: "var(--accent-secondary)", padding: "0.2rem 0.6rem", borderRadius: "9999px" }}>
-                      {e.name}
-                    </span>
-                  ))}
-                </div>
-              )}
+              <div style={{ marginBottom: "1rem" }}>
+                <label className="label">Przypisz do osiedla (opcjonalnie)</label>
+                <select className="input" value={mgrEstateId} onChange={(e) => setMgrEstateId(e.target.value)}>
+                  <option value="">Brak przypisania</option>
+                  {estates.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </div>
+              {mgrError && <p style={{ color: "var(--danger)", fontSize: "0.8125rem", marginBottom: "1rem" }}>{mgrError}</p>}
+              <div style={{ display: "flex", gap: "0.75rem" }}>
+                <button
+                  className="btn btn-primary"
+                  disabled={createManager.isPending || !mgrName || !mgrEmail}
+                  onClick={() => createManager.mutate({ name: mgrName, email: mgrEmail, estateId: mgrEstateId || undefined })}
+                >
+                  {createManager.isPending ? "Tworzenie..." : "Utwórz zarządcę"}
+                </button>
+                <button className="btn btn-ghost" onClick={() => { setShowManagerForm(false); setMgrError(""); }}>Anuluj</button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1rem" }}>
+            {managers.map((mgr) => (
+              <div key={mgr.id} className="card">
+                <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(116,185,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--info)", flexShrink: 0 }}>
+                    <BuildingIcon size={20} />
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600 }}>{mgr.name}</div>
+                    <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mgr.email}</div>
+                  </div>
+                  <span style={{
+                    fontSize: "0.6875rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "9999px",
+                    background: mgr.status === "ACTIVE" ? "rgba(0,184,148,0.12)" : "rgba(253,203,110,0.15)",
+                    color: mgr.status === "ACTIVE" ? "var(--success)" : "var(--warning)",
+                  }}>
+                    {mgr.status === "ACTIVE" ? "Aktywny" : "Oczekuje"}
+                  </span>
+                </div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginBottom: "0.5rem", fontWeight: 600, textTransform: "uppercase" }}>
+                  Zarządza osiedlami ({mgr.managedEstates.length})
+                </div>
+                {mgr.managedEstates.length === 0 ? (
+                  <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>Brak przypisanych osiedli</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
+                    {mgr.managedEstates.map((e) => (
+                      <span key={e.id} style={{ fontSize: "0.75rem", background: "rgba(108,92,231,0.12)", color: "var(--accent-secondary)", padding: "0.2rem 0.6rem", borderRadius: "9999px" }}>
+                        {e.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
       )}
+
+      {/* Confirm delete estate dialog */}
+      <ConfirmDialog
+        open={!!deleteEstateId}
+        title="Usuń osiedle"
+        message="Usunięcie osiedla jest nieodwracalne. Zostaną usunięte wszystkie powiązane layouty, miejsca parkingowe i rezerwacje. Mieszkańcy zostaną odłączeni od osiedla."
+        danger
+        confirmLabel="Tak, usuń osiedle"
+        onConfirm={() => deleteEstateId && deleteEstate.mutate({ id: deleteEstateId })}
+        onCancel={() => setDeleteEstateId(null)}
+      />
     </div>
   );
 }

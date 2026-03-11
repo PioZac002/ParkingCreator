@@ -84,6 +84,17 @@ export const estateRouter = router({
       });
     }),
 
+  delete: adminProcedure
+    .input(z.object({ id: z.string().uuid() }))
+    .mutation(async ({ ctx, input }) => {
+      // Detach residents before deleting (cascade handles spots/layouts/reservations)
+      await ctx.prisma.user.updateMany({
+        where: { estateId: input.id },
+        data: { estateId: null },
+      });
+      return ctx.prisma.estate.delete({ where: { id: input.id } });
+    }),
+
   stats: adminProcedure.query(async ({ ctx }) => {
     const [estateCount, userCount, spotCount, reservationCount] =
       await Promise.all([
