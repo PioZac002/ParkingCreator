@@ -5,7 +5,12 @@
       "Bash(npx tsc:*)",
       "Bash(npx prisma:*)",
       "Bash(del:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(ls:*)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(grep:*)",
+      "Bash(sed:*)"
     ]
   }
 }

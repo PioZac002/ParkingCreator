@@ -4,28 +4,41 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { Session } from "next-auth";
+import type { ReactNode } from "react";
+import {
+  LayoutDashboardIcon,
+  ImportIcon,
+  MapIcon,
+  UsersIcon,
+  CalendarIcon,
+  ParkingIcon,
+  LogOutIcon,
+  CrownIcon,
+  ManagerIcon,
+  HomeIcon,
+} from "@/components/ui/Icons";
 
 type NavItem = {
   href: string;
   label: string;
-  icon: string;
+  icon: ReactNode;
 };
 
 const adminNav: NavItem[] = [
-  { href: "/admin", icon: "📊", label: "Dashboard" },
+  { href: "/admin", icon: <LayoutDashboardIcon size={18} />, label: "Dashboard" },
 ];
 
 const managerNav: NavItem[] = [
-  { href: "/manager", icon: "📊", label: "Dashboard" },
-  { href: "/manager/import", icon: "📥", label: "Import mieszkańców" },
-  { href: "/manager/editor", icon: "🗺️", label: "Kreator parkingu" },
-  { href: "/manager/users", icon: "👥", label: "Mieszkańcy" },
-  { href: "/manager/reservations", icon: "📅", label: "Rezerwacje" },
+  { href: "/manager", icon: <LayoutDashboardIcon size={18} />, label: "Dashboard" },
+  { href: "/manager/import", icon: <ImportIcon size={18} />, label: "Import mieszkańców" },
+  { href: "/manager/editor", icon: <MapIcon size={18} />, label: "Kreator parkingu" },
+  { href: "/manager/users", icon: <UsersIcon size={18} />, label: "Mieszkańcy" },
+  { href: "/manager/reservations", icon: <CalendarIcon size={18} />, label: "Rezerwacje" },
 ];
 
 const residentNav: NavItem[] = [
-  { href: "/parking", icon: "🅿️", label: "Moje parking" },
-  { href: "/parking/reservations", icon: "📅", label: "Rezerwacje" },
+  { href: "/parking", icon: <ParkingIcon size={18} />, label: "Moje parking" },
+  { href: "/parking/reservations", icon: <CalendarIcon size={18} />, label: "Rezerwacje" },
 ];
 
 const roleNavMap: Record<string, NavItem[]> = {
@@ -34,11 +47,16 @@ const roleNavMap: Record<string, NavItem[]> = {
   RESIDENT: residentNav,
 };
 
-const roleLabelMap: Record<string, { label: string; badge: string; icon: string }> = {
-  SUPER_ADMIN: { label: "Super Admin", badge: "badge-admin", icon: "👑" },
-  MANAGER: { label: "Zarządca", badge: "badge-manager", icon: "🏢" },
-  RESIDENT: { label: "Mieszkaniec", badge: "badge-resident", icon: "🏠" },
+const roleLabelMap: Record<string, { label: string; badge: string; icon: ReactNode }> = {
+  SUPER_ADMIN: { label: "Super Admin", badge: "badge-admin", icon: <CrownIcon size={16} /> },
+  MANAGER: { label: "Zarządca", badge: "badge-manager", icon: <ManagerIcon size={16} /> },
+  RESIDENT: { label: "Mieszkaniec", badge: "badge-resident", icon: <HomeIcon size={16} /> },
 };
+
+function getInitials(name: string | null | undefined): string {
+  if (!name) return "?";
+  return name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+}
 
 export function DashboardSidebar({ session }: { session: Session }) {
   const pathname = usePathname();
@@ -60,11 +78,11 @@ export function DashboardSidebar({ session }: { session: Session }) {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "1.25rem",
               flexShrink: 0,
+              color: "#fff",
             }}
           >
-            🅿️
+            <ParkingIcon size={22} />
           </div>
           <div>
             <div style={{ fontWeight: 700, fontSize: "0.9375rem", lineHeight: 1.2 }}>PMS</div>
@@ -84,9 +102,13 @@ export function DashboardSidebar({ session }: { session: Session }) {
               key={item.href}
               href={item.href}
               className={`sidebar-link${isActive ? " active" : ""}`}
-              style={{ borderRadius: "var(--radius-sm)", marginBottom: "2px" }}
+              style={{
+                borderRadius: "var(--radius-sm)",
+                marginBottom: "2px",
+                transition: "background 0.15s, color 0.15s",
+              }}
             >
-              <span style={{ fontSize: "1rem" }}>{item.icon}</span>
+              <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{item.icon}</span>
               <span>{item.label}</span>
             </Link>
           );
@@ -107,22 +129,25 @@ export function DashboardSidebar({ session }: { session: Session }) {
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: "var(--bg-card)",
-              border: "1px solid var(--border-color)",
+              background: "var(--accent-gradient)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "1rem",
+              fontSize: "0.75rem",
+              fontWeight: 700,
+              color: "#fff",
               flexShrink: 0,
+              letterSpacing: "0.03em",
             }}
           >
-            {roleInfo.icon}
+            {getInitials(session.user.name)}
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: "0.8125rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {session.user.name}
             </div>
-            <span className={`badge ${roleInfo.badge}`} style={{ fontSize: "0.625rem", padding: "0.125rem 0.5rem" }}>
+            <span className={`badge ${roleInfo.badge}`} style={{ fontSize: "0.625rem", padding: "0.125rem 0.5rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+              {roleInfo.icon}
               {roleInfo.label}
             </span>
           </div>
@@ -130,9 +155,9 @@ export function DashboardSidebar({ session }: { session: Session }) {
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="btn btn-ghost btn-block btn-sm"
-          style={{ justifyContent: "flex-start", color: "var(--danger)", fontSize: "0.8125rem" }}
+          style={{ justifyContent: "flex-start", color: "var(--danger)", fontSize: "0.8125rem", gap: "0.5rem" }}
         >
-          <span>🚪</span>
+          <LogOutIcon size={15} />
           <span>Wyloguj się</span>
         </button>
       </div>

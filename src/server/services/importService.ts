@@ -67,7 +67,7 @@ export async function importUsers(
       to: email,
       name,
       activationUrl: `${appUrl}/activate/${activationToken}`,
-    }).catch(() => {});
+    }).catch((err) => console.error("[email] Błąd wysyłki:", err));
 
     result.success++;
   }

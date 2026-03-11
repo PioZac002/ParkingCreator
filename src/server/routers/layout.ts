@@ -66,6 +66,70 @@ export const layoutRouter = router({
       });
     }),
 
+  generateLayout: managerProcedure
+    .input(z.object({
+      estateId: z.string().uuid(),
+      name: z.string().min(1),
+      zone: z.string().optional(),
+      spotCount: z.number().int().min(1).max(200),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { estateId, name, zone, spotCount } = input;
+      const prefix = zone || "A";
+
+      // Auto-layout algorithm
+      const cols = Math.ceil(Math.sqrt(spotCount * 1.5));
+      const rows = Math.ceil(spotCount / cols);
+      const gridWidth = cols * 4 + 2;
+      const gridHeight = rows * 6 + 8;
+      const aisleRow = Math.floor(rows / 2);
+      const aisleY = aisleRow * 6 + 3;
+
+      const road = {
+        id: "road-main",
+        type: "road" as const,
+        x: 0,
+        y: aisleY,
+        width: gridWidth,
+        height: 2,
+        label: "Aleja",
+      };
+
+      return ctx.prisma.$transaction(async (tx) => {
+        const layout = await tx.parkingLayout.create({
+          data: {
+            estateId,
+            name,
+            zone: zone || null,
+            gridWidth,
+            gridHeight,
+            gridData: { obstacles: [road] },
+          },
+        });
+
+        const spots = [];
+        for (let i = 0; i < spotCount; i++) {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          // Offset rows below the aisle
+          const rowY = row < aisleRow ? row * 6 + 1 : row * 6 + 4;
+          spots.push({
+            layoutId: layout.id,
+            number: `${prefix}-${String(i + 1).padStart(2, "0")}`,
+            type: "STANDARD" as const,
+            posX: col * 4 + 1,
+            posY: rowY,
+            width: 3,
+            height: 5,
+            rotation: 0,
+          });
+        }
+
+        await tx.parkingSpot.createMany({ data: spots });
+        return layout;
+      });
+    }),
+
   // Save full layout (gridData + spots as one transaction)
   save: managerProcedure
     .input(z.object({

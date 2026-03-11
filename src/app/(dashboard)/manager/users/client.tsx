@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Link from "next/link";
+import { UserPlusIcon, ImportIcon } from "@/components/ui/Icons";
 
 type Spot = { id: string; number: string; type: string };
 type User = {
@@ -51,7 +52,6 @@ function UserRow({
   });
 
   const badge = statusBadge[user.status] ?? statusBadge.PENDING;
-  // Filter out spots already owned by this user
   const available = unassignedSpots.filter((s) => !user.parkingSpots.find((p) => p.id === s.id));
 
   return (
@@ -129,7 +129,7 @@ function UserRow({
 }
 
 export function ManagerUsersClient({
-  users,
+  users: initialUsers,
   unassignedSpots,
   managedEstates,
   activeEstateId,
@@ -142,6 +142,34 @@ export function ManagerUsersClient({
   activeEstateName: string;
 }) {
   const router = useRouter();
+  const [users, setUsers] = useState(initialUsers);
+
+  // Add single user form
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [newEmail, setNewEmail] = useState("");
+  const [addError, setAddError] = useState("");
+  const [addSuccess, setAddSuccess] = useState("");
+
+  const addSingleUser = trpc.import.addSingleUser.useMutation({
+    onSuccess: (result) => {
+      if (result.success > 0) {
+        setAddSuccess(`Konto dla ${newEmail} zostało utworzone. Użytkownik otrzyma email aktywacyjny.`);
+        setUsers((prev) => [
+          ...prev,
+          { id: crypto.randomUUID(), name: newName, email: newEmail, status: "PENDING", createdAt: new Date(), parkingSpots: [] },
+        ]);
+        setNewName("");
+        setNewEmail("");
+      } else if (result.skipped > 0) {
+        setAddError("Użytkownik z tym emailem już istnieje.");
+      } else {
+        setAddError(result.errors[0]?.reason ?? "Błąd podczas dodawania.");
+      }
+    },
+    onError: (err) => setAddError(err.message),
+  });
+
   const counts = {
     total: users.length,
     active: users.filter((u) => u.status === "ACTIVE").length,
@@ -173,10 +201,42 @@ export function ManagerUsersClient({
             )}
           </p>
         </div>
-        <Link href={`/manager/import?estateId=${activeEstateId}`} className="btn btn-primary">
-          <span>📥</span><span>Importuj</span>
-        </Link>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button className="btn btn-secondary" onClick={() => { setShowAddForm((v) => !v); setAddError(""); setAddSuccess(""); }}>
+            <UserPlusIcon size={16} /><span>Dodaj mieszkańca</span>
+          </button>
+          <Link href={`/manager/import?estateId=${activeEstateId}`} className="btn btn-primary">
+            <ImportIcon size={16} /><span>Importuj</span>
+          </Link>
+        </div>
       </div>
+
+      {/* Add single user inline form */}
+      {showAddForm && (
+        <div className="card animate-fade-in" style={{ marginBottom: "1.5rem", maxWidth: "500px" }}>
+          <h3 style={{ fontWeight: 600, marginBottom: "1.25rem" }}>Dodaj mieszkańca</h3>
+          <div style={{ marginBottom: "1rem" }}>
+            <label className="label">Imię i nazwisko</label>
+            <input className="input" placeholder="Jan Kowalski" value={newName} onChange={(e) => { setNewName(e.target.value); setAddError(""); setAddSuccess(""); }} />
+          </div>
+          <div style={{ marginBottom: "1rem" }}>
+            <label className="label">Adres email</label>
+            <input className="input" type="email" placeholder="jan@przyklad.pl" value={newEmail} onChange={(e) => { setNewEmail(e.target.value); setAddError(""); setAddSuccess(""); }} />
+          </div>
+          {addError && <p style={{ color: "var(--danger)", fontSize: "0.8125rem", marginBottom: "0.75rem" }}>{addError}</p>}
+          {addSuccess && <p style={{ color: "var(--success)", fontSize: "0.8125rem", marginBottom: "0.75rem" }}>{addSuccess}</p>}
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            <button
+              className="btn btn-primary"
+              disabled={addSingleUser.isPending || !newName || !newEmail}
+              onClick={() => addSingleUser.mutate({ name: newName, email: newEmail, estateId: activeEstateId })}
+            >
+              {addSingleUser.isPending ? "Dodawanie..." : "Dodaj mieszkańca"}
+            </button>
+            <button className="btn btn-ghost" onClick={() => { setShowAddForm(false); setAddError(""); setAddSuccess(""); }}>Anuluj</button>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="stats-grid" style={{ marginBottom: "2rem" }}>
@@ -191,8 +251,8 @@ export function ManagerUsersClient({
 
       {users.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>👥</div>
-          <p>Brak mieszkańców. Skorzystaj z importu.</p>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.75rem", opacity: 0.4 }}><UserPlusIcon size={48} /></div>
+          <p>Brak mieszkańców. Dodaj lub zaimportuj.</p>
         </div>
       ) : (
         <div className="card" style={{ padding: 0, overflow: "hidden" }}>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { DateTimePicker } from "@/components/ui/DateTimePicker";
 
 type Reservation = {
   id: string;
@@ -191,14 +192,16 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
           <div className="card" style={{ marginBottom: "1rem" }}>
             <p style={{ fontWeight: 700, fontSize: "0.875rem", marginBottom: "0.75rem" }}>Wybierz termin rezerwacji</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: "0.75rem", alignItems: "flex-end" }}>
-              <div>
-                <label className="label">Od</label>
-                <input className="input" type="datetime-local" value={startTime} onChange={(e) => { setStartTime(e.target.value); setSearchReady(false); }} />
-              </div>
-              <div>
-                <label className="label">Do</label>
-                <input className="input" type="datetime-local" value={endTime} onChange={(e) => { setEndTime(e.target.value); setSearchReady(false); }} />
-              </div>
+              <DateTimePicker
+                label="Od"
+                value={startTime}
+                onChange={(v) => { setStartTime(v); setSearchReady(false); }}
+              />
+              <DateTimePicker
+                label="Do"
+                value={endTime}
+                onChange={(v) => { setEndTime(v); setSearchReady(false); }}
+              />
               <button
                 className="btn btn-primary"
                 onClick={handleSearch}
