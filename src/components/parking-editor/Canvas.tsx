@@ -6,8 +6,8 @@ import type Konva from "konva";
 import { useEditorStore, type ParkingSpot, type Obstacle } from "./store";
 
 const SPOT_COLORS: Record<string, string> = {
-  STANDARD: "#6c5ce7",
-  DISABLED: "#74b9ff",
+  STANDARD: "#2563eb",
+  DISABLED: "#60a5fa",
   ELECTRIC: "#00b894",
   RESERVED: "#fdcb6e",
 };
@@ -36,7 +36,7 @@ function SpotShape({
   const y = spot.posY * cellSize;
   const w = spot.width * cellSize;
   const h = spot.height * cellSize;
-  const color = SPOT_COLORS[spot.type] ?? "#6c5ce7";
+  const color = SPOT_COLORS[spot.type] ?? "#2563eb";
 
   return (
     <Group
@@ -221,7 +221,7 @@ export function ParkingCanvas() {
         >
           {/* Background */}
           <Layer>
-            <Rect name="bg" x={0} y={0} width={canvasW} height={canvasH} fill="#12121a" />
+            <Rect name="bg" x={0} y={0} width={canvasW} height={canvasH} fill="#0f172a" />
             {gridLines}
           </Layer>
 

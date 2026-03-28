@@ -6,7 +6,7 @@ export default function AuthLayout({
   return (
     <div
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -25,7 +25,7 @@ export default function AuthLayout({
           height: "600px",
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(108,92,231,0.08) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(37,99,235,0.1) 0%, transparent 70%)",
           pointerEvents: "none",
         }}
       />
@@ -38,7 +38,7 @@ export default function AuthLayout({
           height: "500px",
           borderRadius: "50%",
           background:
-            "radial-gradient(circle, rgba(116,185,255,0.06) 0%, transparent 70%)",
+            "radial-gradient(circle, rgba(96,165,250,0.06) 0%, transparent 70%)",
           pointerEvents: "none",
         }}
       />

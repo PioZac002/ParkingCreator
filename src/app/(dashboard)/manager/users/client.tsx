@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import Link from "next/link";
-import { UserPlusIcon, ImportIcon } from "@/components/ui/Icons";
+import { UserPlusIcon, ImportIcon, XIcon, PlusIcon, CarIcon, WheelchairIcon, ZapIcon, LockIcon } from "@/components/ui/Icons";
+
+function SpotTypeIcon({ type, size = 14 }: { type: string; size?: number }) {
+  if (type === "DISABLED") return <WheelchairIcon size={size} />;
+  if (type === "ELECTRIC") return <ZapIcon size={size} />;
+  if (type === "RESERVED") return <LockIcon size={size} />;
+  return <CarIcon size={size} />;
+}
 
 type Spot = { id: string; number: string; type: string };
 type User = {
@@ -29,26 +36,35 @@ const statusBadge: Record<string, { label: string; color: string }> = {
   DISABLED: { label: "Wyłączony", color: "var(--danger)" },
 };
 
-const typeIcons: Record<string, string> = { STANDARD: "🚗", DISABLED: "♿", ELECTRIC: "⚡", RESERVED: "🔒" };
 
 function UserRow({
   user,
   unassignedSpots,
   activeEstateId,
+  onSpotAssigned,
+  onSpotUnassigned,
 }: {
   user: User;
   unassignedSpots: UnassignedSpot[];
   activeEstateId: string;
+  onSpotAssigned: (userId: string, spot: Spot) => void;
+  onSpotUnassigned: (userId: string, spotId: string) => void;
 }) {
-  const router = useRouter();
   const [assigning, setAssigning] = useState(false);
   const [selectedSpotId, setSelectedSpotId] = useState("");
 
   const assignSpot = trpc.layout.assignSpotOwner.useMutation({
-    onSuccess: () => { setAssigning(false); setSelectedSpotId(""); router.refresh(); },
+    onSuccess: (_, vars) => {
+      setAssigning(false);
+      setSelectedSpotId("");
+      const spot = unassignedSpots.find((s) => s.id === vars.spotId);
+      if (spot) onSpotAssigned(user.id, { id: spot.id, number: spot.number, type: spot.type });
+    },
   });
   const unassignSpot = trpc.layout.assignSpotOwner.useMutation({
-    onSuccess: () => router.refresh(),
+    onSuccess: (_, vars) => {
+      onSpotUnassigned(user.id, vars.spotId);
+    },
   });
 
   const badge = statusBadge[user.status] ?? statusBadge.PENDING;
@@ -63,15 +79,15 @@ function UserRow({
           {user.parkingSpots.map((s) => (
             <span
               key={s.id}
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-secondary)", background: "rgba(108,92,231,0.12)", padding: "0.125rem 0.5rem", borderRadius: "9999px" }}
+              style={{ display: "inline-flex", alignItems: "center", gap: "0.25rem", fontSize: "0.75rem", fontWeight: 600, color: "var(--accent-secondary)", background: "rgba(37,99,235,0.12)", padding: "0.125rem 0.5rem", borderRadius: "9999px" }}
             >
-              {typeIcons[s.type] ?? "🚗"} {s.number}
+              <SpotTypeIcon type={s.type} /> {s.number}
               <button
                 onClick={() => unassignSpot.mutate({ spotId: s.id, userId: null })}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "0 1px", lineHeight: 1, fontSize: "0.75rem" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: "0 1px", lineHeight: 1, display: "inline-flex", alignItems: "center" }}
                 title="Usuń przypisanie"
                 disabled={unassignSpot.isPending}
-              >✕</button>
+              ><XIcon size={11} /></button>
             </span>
           ))}
 
@@ -100,17 +116,17 @@ function UserRow({
               </button>
               <button
                 className="btn btn-ghost btn-sm"
-                style={{ fontSize: "0.7rem", padding: "0.25rem 0.5rem" }}
+                style={{ padding: "0.25rem" }}
                 onClick={() => setAssigning(false)}
-              >✕</button>
+              ><XIcon size={13} /></button>
             </div>
           ) : (
             available.length > 0 && (
               <button
                 onClick={() => setAssigning(true)}
-                style={{ background: "none", border: "1px dashed var(--border-color)", borderRadius: "9999px", cursor: "pointer", color: "var(--text-muted)", padding: "0.125rem 0.5rem", fontSize: "0.75rem", lineHeight: 1.4 }}
+                style={{ background: "none", border: "1px dashed var(--border-color)", borderRadius: "9999px", cursor: "pointer", color: "var(--text-muted)", padding: "0.125rem 0.4rem", fontSize: "0.75rem", lineHeight: 1.4, display: "inline-flex", alignItems: "center", gap: "0.2rem" }}
               >
-                + Dodaj
+                <PlusIcon size={11} /> Dodaj
               </button>
             )
           )}
@@ -143,6 +159,24 @@ export function ManagerUsersClient({
 }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
+
+  const handleSpotAssigned = useCallback((userId: string, spot: Spot) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, parkingSpots: [...u.parkingSpots, spot] } : u
+      )
+    );
+    router.refresh(); // refresh server data (unassignedSpots)
+  }, [router]);
+
+  const handleSpotUnassigned = useCallback((userId: string, spotId: string) => {
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === userId ? { ...u, parkingSpots: u.parkingSpots.filter((s) => s.id !== spotId) } : u
+      )
+    );
+    router.refresh();
+  }, [router]);
 
   // Add single user form
   const [showAddForm, setShowAddForm] = useState(false);
@@ -273,6 +307,8 @@ export function ManagerUsersClient({
                   user={u}
                   unassignedSpots={unassignedSpots}
                   activeEstateId={activeEstateId}
+                  onSpotAssigned={handleSpotAssigned}
+                  onSpotUnassigned={handleSpotUnassigned}
                 />
               ))}
             </tbody>

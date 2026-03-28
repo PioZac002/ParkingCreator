@@ -8,7 +8,7 @@ import { useEditorStore } from "@/components/parking-editor/store";
 import { EditorToolbar } from "@/components/parking-editor/Toolbar";
 import { useStore } from "zustand";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { TrashIcon } from "@/components/ui/Icons";
+import { TrashIcon, MapIcon, PlusIcon } from "@/components/ui/Icons";
 
 // Konva must be loaded client-side (no SSR)
 const ParkingCanvas = dynamic(
@@ -116,6 +116,7 @@ export function EditorClient({
   };
 
   const handleCreate = () => {
+    setShowNewForm(false);
     if (useAutoLayout) {
       generateLayout.mutate({ estateId: activeEstateId, name: newName, zone: newZone || undefined, spotCount });
     } else {
@@ -278,9 +279,9 @@ export function EditorClient({
         </div>
       ) : !showNewForm ? (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "1rem", color: "var(--text-muted)" }}>
-          <div style={{ fontSize: "3rem" }}>🗺️</div>
+          <div style={{ opacity: 0.3 }}><MapIcon size={56} /></div>
           <p style={{ fontWeight: 600 }}>Wybierz lub utwórz layout parkingu</p>
-          <button className="btn btn-primary" onClick={() => setShowNewForm(true)}>+ Nowy layout</button>
+          <button className="btn btn-primary" onClick={() => setShowNewForm(true)}><PlusIcon size={15} /> Nowy layout</button>
         </div>
       ) : null}
 
@@ -291,7 +292,12 @@ export function EditorClient({
         message={`Czy na pewno chcesz usunąć layout "${existingLayout?.name}"? Zostaną usunięte wszystkie miejsca parkingowe i powiązane rezerwacje.`}
         danger
         confirmLabel="Tak, usuń layout"
-        onConfirm={() => existingLayout && deleteLayout.mutate({ id: existingLayout.id })}
+        onConfirm={() => {
+          if (!existingLayout) return;
+          markSaved(); // clear isDirty so beforeunload doesn't trigger
+          setShowDeleteConfirm(false);
+          deleteLayout.mutate({ id: existingLayout.id });
+        }}
         onCancel={() => setShowDeleteConfirm(false)}
       />
     </div>

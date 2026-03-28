@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { CheckIcon, XIcon, ParkingIcon } from "@/components/ui/Icons";
 
 type Status = "valid" | "invalid" | "expired" | "already_active";
 
@@ -63,7 +64,11 @@ export function ActivatePageClient({
     return (
       <div style={{ width: "100%", maxWidth: "440px", padding: "1rem", textAlign: "center" }}>
         <div className="glass-strong" style={{ borderRadius: "var(--radius-lg)", padding: "3rem 2rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>❌</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "rgba(239,68,68,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--danger)" }}>
+              <XIcon size={28} />
+            </div>
+          </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.75rem" }}>Nieprawidłowy link</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
             Link aktywacyjny jest nieprawidłowy lub już został użyty.
@@ -80,7 +85,11 @@ export function ActivatePageClient({
     return (
       <div style={{ width: "100%", maxWidth: "440px", padding: "1rem", textAlign: "center" }}>
         <div className="glass-strong" style={{ borderRadius: "var(--radius-lg)", padding: "3rem 2rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⏰</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "rgba(245,158,11,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--warning)" }}>
+              <XIcon size={28} />
+            </div>
+          </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.75rem" }}>Link wygasł</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
             Link aktywacyjny wygasa po 48 godzinach. Skontaktuj się z zarządcą, aby wysłał nowy link.
@@ -97,7 +106,11 @@ export function ActivatePageClient({
     return (
       <div style={{ width: "100%", maxWidth: "440px", padding: "1rem", textAlign: "center" }}>
         <div className="glass-strong" style={{ borderRadius: "var(--radius-lg)", padding: "3rem 2rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>✅</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--success)" }}>
+              <CheckIcon size={28} />
+            </div>
+          </div>
           <h1 style={{ fontSize: "1.25rem", fontWeight: 700, marginBottom: "0.75rem" }}>Konto już aktywne</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
             Twoje konto jest już aktywowane. Możesz się zalogować.
@@ -122,12 +135,12 @@ export function ActivatePageClient({
             height: "64px",
             borderRadius: "16px",
             background: "var(--accent-gradient)",
-            fontSize: "1.75rem",
             marginBottom: "1rem",
-            boxShadow: "0 8px 24px rgba(108, 92, 231, 0.3)",
+            boxShadow: "0 8px 24px rgba(37, 99, 235, 0.35)",
+            color: "#fff",
           }}
         >
-          🅿️
+          <ParkingIcon size={32} />
         </div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.25rem" }}>
           Witaj, {userName}!
@@ -145,7 +158,11 @@ export function ActivatePageClient({
       <div className="glass-strong" style={{ borderRadius: "var(--radius-lg)", padding: "2rem" }}>
         {success ? (
           <div style={{ textAlign: "center", padding: "1rem" }}>
-            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>🎉</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+              <div style={{ width: "56px", height: "56px", borderRadius: "50%", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--success)" }}>
+                <CheckIcon size={28} />
+              </div>
+            </div>
             <h3 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Konto aktywowane!</h3>
             <p style={{ color: "var(--text-secondary)", fontSize: "0.875rem" }}>
               Przekierowujemy Cię do strony logowania...

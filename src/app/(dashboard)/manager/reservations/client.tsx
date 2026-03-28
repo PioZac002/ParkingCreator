@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { CarIcon, WheelchairIcon, ZapIcon, LockIcon, ClipboardListIcon, CheckIcon } from "@/components/ui/Icons";
+
+function SpotTypeIcon({ type, size = 20 }: { type: string; size?: number }) {
+  if (type === "DISABLED") return <WheelchairIcon size={size} />;
+  if (type === "ELECTRIC") return <ZapIcon size={size} />;
+  if (type === "RESERVED") return <LockIcon size={size} />;
+  return <CarIcon size={size} />;
+}
 
 type Reservation = {
   id: string;
@@ -38,7 +46,6 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Anulowana",
   COMPLETED: "Zakończona",
 };
-const typeIcons: Record<string, string> = { STANDARD: "🚗", DISABLED: "♿", ELECTRIC: "⚡", RESERVED: "🔒" };
 
 const FILTERS = ["Wszystkie", "Oczekujące", "Potwierdzone", "Anulowane"] as const;
 type Filter = (typeof FILTERS)[number];
@@ -93,16 +100,17 @@ export function ManagerReservationsClient({
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: "flex", gap: "0.375rem", marginBottom: "1.25rem", flexWrap: "wrap" }}>
+      <div className="pill-tabs" style={{ marginBottom: "1.25rem" }}>
         {FILTERS.map((f) => (
           <button
             key={f}
-            className={`btn btn-sm ${filter === f ? "btn-primary" : "btn-secondary"}`}
+            className={`pill-tab${filter === f ? " active" : ""}`}
             onClick={() => setFilter(f)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
           >
             {f}
             {f === "Oczekujące" && pendingCount > 0 && (
-              <span style={{ marginLeft: "0.375rem", background: "var(--danger)", color: "#fff", borderRadius: "999px", padding: "0 5px", fontSize: "0.6875rem" }}>
+              <span style={{ background: "var(--danger)", color: "#fff", borderRadius: "999px", padding: "0 5px", fontSize: "0.6875rem" }}>
                 {pendingCount}
               </span>
             )}
@@ -112,7 +120,7 @@ export function ManagerReservationsClient({
 
       {filtered.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📋</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.75rem", opacity: 0.4 }}><ClipboardListIcon size={48} /></div>
           <p>Brak rezerwacji w tej kategorii.</p>
         </div>
       ) : (
@@ -120,7 +128,7 @@ export function ManagerReservationsClient({
           {filtered.map((r) => (
             <div key={r.id} className="card animate-fade-in" style={{ padding: "1rem 1.25rem" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "1rem", flexWrap: "wrap" }}>
-                <div style={{ fontSize: "1.5rem" }}>{typeIcons[r.spot.type] ?? "🚗"}</div>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.05)", flexShrink: 0, color: "var(--text-secondary)" }}><SpotTypeIcon type={r.spot.type} size={18} /></div>
                 <div style={{ flex: 1, minWidth: "180px" }}>
                   <div style={{ fontWeight: 700 }}>
                     Miejsce {r.spot.number}
@@ -148,11 +156,11 @@ export function ManagerReservationsClient({
                         disabled={updateStatus.isPending}
                         onClick={() => updateStatus.mutate({ reservationId: r.id, status: "CONFIRMED" })}
                       >
-                        ✓ Potwierdź
+                        <CheckIcon size={13} /> Potwierdź
                       </button>
                       <button
                         className="btn btn-sm"
-                        style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)" }}
+                        style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
                         disabled={updateStatus.isPending}
                         onClick={() => updateStatus.mutate({ reservationId: r.id, status: "CANCELLED" })}
                       >
@@ -163,7 +171,7 @@ export function ManagerReservationsClient({
                   {r.status === "CONFIRMED" && (
                     <button
                       className="btn btn-sm"
-                      style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)" }}
+                      style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
                       disabled={updateStatus.isPending}
                       onClick={() => updateStatus.mutate({ reservationId: r.id, status: "CANCELLED" })}
                     >

@@ -1,23 +1,29 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useEditorStore, type Tool, type SpotType } from "./store";
+import {
+  CursorIcon, CarIcon, RoadIcon, WallIcon, PillarIcon, TrashIcon,
+  WheelchairIcon, ZapIcon, LockIcon,
+  UndoIcon, RedoIcon, SaveIcon, RotateCwIcon, MapPinIcon,
+} from "@/components/ui/Icons";
 
-type ToolDef = { tool: Tool; icon: string; label: string };
+type ToolDef = { tool: Tool; icon: ReactNode; label: string };
 
 const tools: ToolDef[] = [
-  { tool: "select", icon: "↖️", label: "Zaznacz" },
-  { tool: "spot", icon: "🚗", label: "Dodaj miejsce" },
-  { tool: "road", icon: "🛣️", label: "Droga" },
-  { tool: "wall", icon: "🧱", label: "Ściana" },
-  { tool: "pillar", icon: "⬛", label: "Słup" },
-  { tool: "delete", icon: "🗑️", label: "Usuń" },
+  { tool: "select", icon: <CursorIcon size={14} />, label: "Zaznacz" },
+  { tool: "spot", icon: <CarIcon size={14} />, label: "Dodaj miejsce" },
+  { tool: "road", icon: <RoadIcon size={14} />, label: "Droga" },
+  { tool: "wall", icon: <WallIcon size={14} />, label: "Ściana" },
+  { tool: "pillar", icon: <PillarIcon size={14} />, label: "Słup" },
+  { tool: "delete", icon: <TrashIcon size={14} />, label: "Usuń" },
 ];
 
-const spotTypes: { type: SpotType; icon: string; label: string }[] = [
-  { type: "STANDARD", icon: "🚗", label: "Standardowe" },
-  { type: "DISABLED", icon: "♿", label: "Dla niepełnosprawnych" },
-  { type: "ELECTRIC", icon: "⚡", label: "Elektryczne" },
-  { type: "RESERVED", icon: "🔒", label: "Zarezerwowane" },
+const spotTypes: { type: SpotType; icon: ReactNode; label: string }[] = [
+  { type: "STANDARD", icon: <CarIcon size={13} />, label: "Standardowe" },
+  { type: "DISABLED", icon: <WheelchairIcon size={13} />, label: "Dla niepełnosprawnych" },
+  { type: "ELECTRIC", icon: <ZapIcon size={13} />, label: "Elektryczne" },
+  { type: "RESERVED", icon: <LockIcon size={13} />, label: "Zarezerwowane" },
 ];
 
 export function EditorToolbar({
@@ -42,12 +48,15 @@ export function EditorToolbar({
     <div
       style={{
         width: "220px",
+        minWidth: "220px",
+        maxWidth: "220px",
         background: "var(--bg-sidebar)",
         borderRight: "1px solid var(--border-color)",
         display: "flex",
         flexDirection: "column",
         gap: 0,
         overflowY: "auto",
+        overflowX: "hidden",
       }}
     >
       {/* Header */}
@@ -57,11 +66,11 @@ export function EditorToolbar({
           {isDirty && <span style={{ fontSize: "0.6875rem", color: "var(--warning)" }}>● Niezapisane</span>}
         </div>
         <div style={{ display: "flex", gap: "0.375rem" }}>
-          <button className="btn btn-ghost btn-sm" style={{ flex: 1, fontSize: "0.75rem" }} onClick={onUndo} disabled={!canUndo} title="Cofnij (Ctrl+Z)">↩ Cofnij</button>
-          <button className="btn btn-ghost btn-sm" style={{ flex: 1, fontSize: "0.75rem" }} onClick={onRedo} disabled={!canRedo} title="Ponów (Ctrl+Y)">↪ Ponów</button>
+          <button className="btn btn-ghost btn-sm" style={{ flex: 1, fontSize: "0.75rem", gap: "0.25rem" }} onClick={onUndo} disabled={!canUndo} title="Cofnij (Ctrl+Z)"><UndoIcon size={13} /> Cofnij</button>
+          <button className="btn btn-ghost btn-sm" style={{ flex: 1, fontSize: "0.75rem", gap: "0.25rem" }} onClick={onRedo} disabled={!canRedo} title="Ponów (Ctrl+Y)"><RedoIcon size={13} /> Ponów</button>
         </div>
         <button className="btn btn-primary btn-block" style={{ marginTop: "0.5rem", fontSize: "0.8125rem" }} onClick={onSave} disabled={saving || !isDirty}>
-          {saving ? "Zapisywanie..." : "💾 Zapisz layout"}
+          <SaveIcon size={14} /> {saving ? "Zapisywanie..." : "Zapisz layout"}
         </button>
       </div>
 
@@ -74,11 +83,11 @@ export function EditorToolbar({
               key={tool}
               onClick={() => setTool(tool)}
               className={`btn btn-sm ${activeTool === tool ? "btn-primary" : "btn-secondary"}`}
-              style={{ justifyContent: "flex-start", gap: "0.375rem", fontSize: "0.75rem", padding: "0.5rem 0.75rem" }}
+              style={{ justifyContent: "flex-start", gap: "0.25rem", fontSize: "0.75rem", padding: "0.4rem 0.5rem", minWidth: 0 }}
               title={label}
             >
-              <span>{icon}</span>
-              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+              <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{icon}</span>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", minWidth: 0 }}>{label}</span>
             </button>
           ))}
         </div>
@@ -132,16 +141,16 @@ export function EditorToolbar({
                 style={{ justifyContent: "flex-start", gap: "0.5rem", fontSize: "0.75rem" }}
                 onClick={() => changeSpotType(selectedSpot.id, type)}
               >
-                <span>{icon}</span> {label}
+                <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{icon}</span> {label}
               </button>
             ))}
           </div>
           <div style={{ display: "flex", gap: "0.375rem" }}>
-            <button className="btn btn-secondary btn-sm" style={{ flex: 1, fontSize: "0.75rem" }} onClick={() => rotateSpot(selectedSpot.id)}>
-              🔄 {selectedSpot.rotation}°
+            <button className="btn btn-secondary btn-sm" style={{ flex: 1, fontSize: "0.75rem", gap: "0.375rem" }} onClick={() => rotateSpot(selectedSpot.id)}>
+              <RotateCwIcon size={13} /> {selectedSpot.rotation}°
             </button>
-            <button className="btn btn-sm" style={{ color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)", fontSize: "0.75rem" }} onClick={deleteSelected}>
-              🗑️
+            <button className="btn btn-sm" style={{ color: "var(--danger)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", padding: "0.375rem 0.625rem" }} onClick={deleteSelected}>
+              <TrashIcon size={14} />
             </button>
           </div>
         </div>
@@ -149,8 +158,8 @@ export function EditorToolbar({
 
       {/* Stats */}
       <div style={{ padding: "0.75rem 1rem", marginTop: "auto" }}>
-        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
-          📍 {spots.length} miejsc
+        <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "0.375rem" }}>
+          <MapPinIcon size={13} /> {spots.length} miejsc
         </p>
       </div>
     </div>

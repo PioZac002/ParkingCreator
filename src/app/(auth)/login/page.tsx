@@ -3,13 +3,24 @@
 import { signIn } from "next-auth/react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+import { ParkingIcon, CrownIcon, ManagerIcon, HomeIcon } from "@/components/ui/Icons";
 
-const demoAccounts = [
+type DemoAccount = {
+  label: string;
+  email: string;
+  role: string;
+  icon: ReactNode;
+  badge: string;
+  redirect: string;
+};
+
+const demoAccounts: DemoAccount[] = [
   {
     label: "Super Admin",
     email: "admin@pms.dev",
     role: "SUPER_ADMIN",
-    icon: "👑",
+    icon: <CrownIcon size={16} />,
     badge: "badge-admin",
     redirect: "/admin",
   },
@@ -17,7 +28,7 @@ const demoAccounts = [
     label: "Zarządca",
     email: "zarzadca1@pms.dev",
     role: "MANAGER",
-    icon: "🏢",
+    icon: <ManagerIcon size={16} />,
     badge: "badge-manager",
     redirect: "/manager",
   },
@@ -25,7 +36,7 @@ const demoAccounts = [
     label: "Mieszkaniec",
     email: "mieszkaniec1@pms.dev",
     role: "RESIDENT",
-    icon: "🏠",
+    icon: <HomeIcon size={16} />,
     badge: "badge-resident",
     redirect: "/parking",
   },
@@ -64,7 +75,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleDemoLogin = async (account: (typeof demoAccounts)[0]) => {
+  const handleDemoLogin = async (account: DemoAccount) => {
     setError("");
     setDemoLoading(account.email);
 
@@ -101,12 +112,12 @@ export default function LoginPage() {
             height: "64px",
             borderRadius: "16px",
             background: "var(--accent-gradient)",
-            fontSize: "1.75rem",
             marginBottom: "1rem",
-            boxShadow: "0 8px 24px rgba(108, 92, 231, 0.3)",
+            boxShadow: "0 8px 24px rgba(37, 99, 235, 0.35)",
+            color: "#fff",
           }}
         >
-          🅿️
+          <ParkingIcon size={32} />
         </div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.25rem" }}>
           Parking Management System
@@ -169,7 +180,6 @@ export default function LoginPage() {
             type="submit"
             className="btn btn-primary btn-block btn-lg"
             disabled={loading}
-            style={{ opacity: loading ? 0.7 : 1 }}
           >
             {loading ? "Logowanie..." : "Zaloguj się"}
           </button>
@@ -185,7 +195,14 @@ export default function LoginPage() {
           }}
         >
           <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
-          <span style={{ color: "var(--text-muted)", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.1em" }}>
+          <span
+            style={{
+              color: "var(--text-muted)",
+              fontSize: "0.75rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.1em",
+            }}
+          >
             Demo
           </span>
           <div style={{ flex: 1, height: "1px", background: "var(--border-color)" }} />
@@ -199,12 +216,18 @@ export default function LoginPage() {
               className="btn btn-secondary btn-block"
               onClick={() => handleDemoLogin(account)}
               disabled={demoLoading !== null}
-              style={{
-                justifyContent: "flex-start",
-                opacity: demoLoading === account.email ? 0.7 : 1,
-              }}
+              style={{ justifyContent: "flex-start" }}
             >
-              <span style={{ fontSize: "1.125rem" }}>{account.icon}</span>
+              <span
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  flexShrink: 0,
+                  color: "var(--text-secondary)",
+                }}
+              >
+                {account.icon}
+              </span>
               <span style={{ flex: 1, textAlign: "left" }}>
                 {demoLoading === account.email ? "Logowanie..." : `Zaloguj jako ${account.label}`}
               </span>

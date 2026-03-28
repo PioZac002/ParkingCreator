@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { parseFile } from "@/lib/parsers/fileParser";
 import type { ParsedUser } from "@/lib/parsers/fileParser";
+import { ImportIcon, CheckIcon, XIcon, AlertIcon } from "@/components/ui/Icons";
 
 type ManagedEstate = { id: string; name: string };
 type Step = "upload" | "map" | "preview" | "done";
@@ -155,7 +156,7 @@ export function ImportPageClient({
             <div key={s} style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {i > 0 && <div style={{ width: "2rem", height: "1px", background: isDone ? "var(--accent-primary)" : "var(--border-color)" }} />}
               <div style={{ width: "28px", height: "28px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700, background: isCurrent ? "var(--accent-gradient)" : isDone ? "var(--success)" : "var(--bg-card)", border: isCurrent || isDone ? "none" : "1px solid var(--border-color)", color: isCurrent || isDone ? "white" : "var(--text-muted)" }}>
-                {isDone ? "✓" : i + 1}
+                {isDone ? <CheckIcon size={12} /> : i + 1}
               </div>
               <span style={{ fontSize: "0.8125rem", color: isCurrent ? "var(--text-primary)" : "var(--text-muted)", fontWeight: isCurrent ? 600 : 400 }}>{labels[i]}</span>
             </div>
@@ -171,14 +172,14 @@ export function ImportPageClient({
             onDragLeave={() => setIsDragging(false)}
             onDrop={(e) => { e.preventDefault(); setIsDragging(false); const f = e.dataTransfer.files[0]; if (f) processFile(f); }}
             onClick={() => fileInputRef.current?.click()}
-            style={{ border: `2px dashed ${isDragging ? "var(--accent-primary)" : "var(--border-color)"}`, borderRadius: "var(--radius-lg)", padding: "4rem 2rem", textAlign: "center", cursor: "pointer", background: isDragging ? "rgba(108,92,231,0.05)" : "var(--bg-secondary)", transition: "all 0.2s ease" }}
+            style={{ border: `2px dashed ${isDragging ? "var(--accent-primary)" : "var(--border-color)"}`, borderRadius: "var(--radius-lg)", padding: "4rem 2rem", textAlign: "center", cursor: "pointer", background: isDragging ? "rgba(37,99,235,0.05)" : "var(--bg-secondary)", transition: "all 0.2s ease" }}
           >
-            <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>📂</div>
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem", opacity: 0.5 }}><ImportIcon size={48} /></div>
             <p style={{ fontWeight: 600, marginBottom: "0.5rem" }}>{parsing ? "Przetwarzanie..." : "Przeciągnij plik lub kliknij"}</p>
             <p style={{ fontSize: "0.8125rem", color: "var(--text-muted)" }}>CSV, XLSX, XLS, TXT, JSON</p>
             <input ref={fileInputRef} type="file" accept={ACCEPTED} onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }} style={{ display: "none" }} />
           </div>
-          {parseError && <p style={{ color: "var(--danger)", marginTop: "1rem", fontSize: "0.875rem" }}>⚠️ {parseError}</p>}
+          {parseError && <p style={{ color: "var(--danger)", marginTop: "1rem", fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "0.375rem" }}><AlertIcon size={14} /> {parseError}</p>}
         </div>
       )}
 
@@ -221,7 +222,7 @@ export function ImportPageClient({
                 <h3 style={{ fontWeight: 600 }}>Podgląd importu</h3>
                 <p style={{ fontSize: "0.8125rem", color: "var(--text-secondary)", marginTop: "0.25rem" }}>{users.length} użytkowników</p>
               </div>
-              <button className="btn btn-ghost btn-sm" onClick={reset}>✕</button>
+              <button className="btn btn-ghost btn-sm" style={{ padding: "0.375rem" }} onClick={reset}><XIcon size={14} /></button>
             </div>
             <div style={{ maxHeight: "320px", overflowY: "auto" }}>
               <table style={{ width: "100%", fontSize: "0.8125rem", borderCollapse: "collapse" }}>
@@ -244,7 +245,7 @@ export function ImportPageClient({
               </table>
             </div>
           </div>
-          {parseError && <p style={{ color: "var(--danger)", marginBottom: "1rem", fontSize: "0.875rem" }}>⚠️ {parseError}</p>}
+          {parseError && <p style={{ color: "var(--danger)", marginBottom: "1rem", fontSize: "0.875rem", display: "flex", alignItems: "center", gap: "0.375rem" }}><AlertIcon size={14} /> {parseError}</p>}
           <div style={{ display: "flex", gap: "0.75rem" }}>
             <button className="btn btn-primary btn-lg" onClick={() => importMutation.mutate({ users, estateId: activeEstateId })} disabled={importMutation.isPending || !activeEstateId}>
               {importMutation.isPending ? "Importowanie..." : `Importuj ${users.length} użytkowników`}
@@ -257,7 +258,11 @@ export function ImportPageClient({
       {/* Step 4: Done */}
       {step === "done" && importResult && (
         <div className="card animate-fade-in" style={{ textAlign: "center", padding: "3rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🎉</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <div style={{ width: "60px", height: "60px", borderRadius: "50%", background: "rgba(34,197,94,0.12)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--success)" }}>
+              <CheckIcon size={30} />
+            </div>
+          </div>
           <h2 style={{ fontWeight: 700, marginBottom: "1.5rem" }}>Import zakończony!</h2>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", marginBottom: "2rem" }}>
             <div className="card-stat"><div className="stat-value" style={{ color: "var(--success)" }}>{importResult.success}</div><div className="stat-label">Zaimportowanych</div></div>

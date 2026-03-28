@@ -4,6 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
 import { DateTimePicker } from "@/components/ui/DateTimePicker";
+import {
+  CarIcon, WheelchairIcon, ZapIcon, LockIcon,
+  SearchIcon, ClipboardListIcon, InboxIcon, CheckIcon,
+} from "@/components/ui/Icons";
+
+function SpotTypeIcon({ type, size = 20 }: { type: string; size?: number }) {
+  if (type === "DISABLED") return <WheelchairIcon size={size} />;
+  if (type === "ELECTRIC") return <ZapIcon size={size} />;
+  if (type === "RESERVED") return <LockIcon size={size} />;
+  return <CarIcon size={size} />;
+}
 
 type Reservation = {
   id: string;
@@ -48,7 +59,6 @@ const statusLabels: Record<string, string> = {
   CANCELLED: "Anulowana",
   COMPLETED: "Zakończona",
 };
-const typeIcons: Record<string, string> = { STANDARD: "🚗", DISABLED: "♿", ELECTRIC: "⚡", RESERVED: "🔒" };
 
 export function ReservationsClient({ myReservations }: { myReservations: Reservation[] }) {
   const router = useRouter();
@@ -96,12 +106,12 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
-        <button className={`btn btn-sm ${tab === "mine" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTab("mine")}>
-          📋 Moje rezerwacje {activeReservations.length > 0 && `(${activeReservations.length})`}
+      <div className="pill-tabs" style={{ marginBottom: "1.5rem" }}>
+        <button className={`pill-tab${tab === "mine" ? " active" : ""}`} onClick={() => setTab("mine")} style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
+          <ClipboardListIcon size={14} /> Moje rezerwacje {activeReservations.length > 0 && `(${activeReservations.length})`}
         </button>
-        <button className={`btn btn-sm ${tab === "search" ? "btn-primary" : "btn-secondary"}`} onClick={() => setTab("search")}>
-          🔍 Szukaj miejsca
+        <button className={`pill-tab${tab === "search" ? " active" : ""}`} onClick={() => setTab("search")} style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}>
+          <SearchIcon size={14} /> Szukaj miejsca
         </button>
       </div>
 
@@ -115,7 +125,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
                 {activeReservations.map((r) => (
                   <div key={r.id} className="card animate-fade-in" style={{ padding: "1rem 1.25rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-                      <div style={{ fontSize: "1.5rem" }}>{typeIcons[r.spot.type] ?? "🚗"}</div>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.05)", flexShrink: 0, color: "var(--text-secondary)" }}><SpotTypeIcon type={r.spot.type} size={18} /></div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700 }}>Miejsce {r.spot.number}</div>
                         <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
@@ -132,7 +142,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
                         {(r.status === "PENDING" || r.status === "CONFIRMED") && (
                           <button
                             className="btn btn-sm"
-                            style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)" }}
+                            style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
                             onClick={() => cancel.mutate({ reservationId: r.id })}
                             disabled={cancel.isPending}
                           >
@@ -175,7 +185,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
 
           {myReservations.length === 0 && (
             <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-              <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>📋</div>
+              <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.75rem", opacity: 0.4 }}><ClipboardListIcon size={48} /></div>
               <p>Nie masz żadnych rezerwacji.</p>
               <button className="btn btn-primary" style={{ marginTop: "1rem" }} onClick={() => setTab("search")}>
                 Zarezerwuj miejsce
@@ -207,7 +217,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
                 onClick={handleSearch}
                 disabled={searching || new Date(endTime) <= new Date(startTime)}
               >
-                {searching ? "Szukam..." : "🔍 Szukaj"}
+                {searching ? "Szukam..." : <><SearchIcon size={15} /> Szukaj</>}
               </button>
             </div>
             {new Date(endTime) <= new Date(startTime) && (
@@ -221,7 +231,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
           {searchReady && !searching && availableSpots && (
             availableSpots.length === 0 ? (
               <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>😔</div>
+                <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem", opacity: 0.4 }}><InboxIcon size={36} /></div>
                 <p>Brak wolnych miejsc w wybranym terminie.</p>
               </div>
             ) : (
@@ -233,7 +243,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
                   {availableSpots.map((spot: AvailableSpot) => (
                     <div key={spot.id} className="card animate-fade-in" style={{ padding: "1rem 1.25rem" }}>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        <div style={{ fontSize: "1.5rem" }}>{typeIcons[spot.type] ?? "🚗"}</div>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "36px", height: "36px", borderRadius: "8px", background: "rgba(255,255,255,0.05)", flexShrink: 0, color: "var(--text-secondary)" }}><SpotTypeIcon type={spot.type} size={18} /></div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontWeight: 700 }}>Miejsce {spot.number}</div>
                           <div style={{ fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
@@ -254,7 +264,7 @@ export function ReservationsClient({ myReservations }: { myReservations: Reserva
                               disabled={create.isPending}
                               onClick={() => create.mutate({ spotId: spot.id, startTime: new Date(startTime), endTime: new Date(endTime) })}
                             >
-                              {create.isPending ? "Rezerwuję..." : "✓ Potwierdź"}
+                              {create.isPending ? "Rezerwuję..." : <><CheckIcon size={13} /> Potwierdź</>}
                             </button>
                             <button className="btn btn-ghost btn-sm" style={{ fontSize: "0.75rem" }} onClick={() => setBookingSpotId(null)}>
                               Anuluj

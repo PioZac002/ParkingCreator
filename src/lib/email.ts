@@ -28,7 +28,7 @@ function fmt(d: Date) {
 
 function baseHtml(title: string, body: string) {
   return `<!DOCTYPE html><html><body style="font-family:sans-serif;color:#1e1e2e;padding:24px">
-    <h2 style="color:#6c5ce7">${title}</h2>${body}
+    <h2 style="color:#2563eb">${title}</h2>${body}
     <hr style="margin:24px 0;border:none;border-top:1px solid #ddd"/>
     <p style="font-size:12px;color:#888">ParkingCreator — System zarządzania parkingiem</p>
   </body></html>`;
@@ -86,7 +86,7 @@ export async function sendActivationEmail(data: { to: string; name: string; acti
       `<p>Twoje konto w systemie zarządzania parkingiem zostało utworzone.</p>
        <p>Aby aktywować konto i ustawić hasło, kliknij poniższy link:</p>
        <p style="margin:24px 0">
-         <a href="${data.activationUrl}" style="background:#6c5ce7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
+         <a href="${data.activationUrl}" style="background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600">
            Aktywuj konto
          </a>
        </p>
