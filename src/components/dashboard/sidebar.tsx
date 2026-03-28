@@ -16,7 +16,10 @@ import {
   CrownIcon,
   ManagerIcon,
   HomeIcon,
+  SunIcon,
+  MoonIcon,
 } from "@/components/ui/Icons";
+import { useTheme } from "@/lib/theme";
 
 type NavItem = {
   href: string;
@@ -37,7 +40,7 @@ const managerNav: NavItem[] = [
 ];
 
 const residentNav: NavItem[] = [
-  { href: "/parking", icon: <ParkingIcon size={18} />, label: "Moje parking" },
+  { href: "/parking", icon: <ParkingIcon size={18} />, label: "Mój parking" },
   { href: "/parking/reservations", icon: <CalendarIcon size={18} />, label: "Rezerwacje" },
 ];
 
@@ -60,43 +63,60 @@ function getInitials(name: string | null | undefined): string {
 
 export function DashboardSidebar({ session }: { session: Session }) {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
   const role = (session.user as Record<string, unknown>).role as string;
   const navItems = roleNavMap[role] ?? residentNav;
   const roleInfo = roleLabelMap[role] ?? roleLabelMap.RESIDENT;
 
   return (
-    <aside className="sidebar animate-slide-in" style={{ position: "sticky", top: 0, height: "100vh" }}>
+    <aside className="sidebar">
       {/* Logo */}
-      <div style={{ padding: "0 1.5rem 1.5rem", borderBottom: "1px solid var(--border-color)", marginBottom: "1rem" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "10px",
-              background: "var(--accent-gradient)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-              color: "#fff",
-            }}
-          >
-            <ParkingIcon size={22} />
-          </div>
-          <div>
-            <div style={{ fontWeight: 700, fontSize: "0.9375rem", lineHeight: 1.2 }}>PMS</div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", lineHeight: 1 }}>
-              Parking Manager
-            </div>
+      <div
+        style={{
+          padding: "0 1.5rem 1.25rem",
+          borderBottom: "1px solid var(--border-color)",
+          marginBottom: "0.75rem",
+          display: "flex",
+          alignItems: "center",
+          gap: "0.75rem",
+        }}
+      >
+        <div
+          style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "9px",
+            background: "var(--accent-gradient)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            color: "#fff",
+            boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+          }}
+        >
+          <ParkingIcon size={20} />
+        </div>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: "0.9375rem", lineHeight: 1.2 }}>PMS</div>
+          <div style={{ fontSize: "0.6875rem", color: "var(--text-muted)", lineHeight: 1 }}>
+            Parking Manager
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, padding: "0 0.5rem" }}>
+      <nav style={{ flex: 1, padding: "0 0.75rem" }}>
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/" &&
+              pathname.startsWith(item.href + "/") &&
+              !navItems.some(
+                (other) =>
+                  other.href !== item.href &&
+                  (pathname === other.href || pathname.startsWith(other.href + "/"))
+              ));
           return (
             <Link
               key={item.href}
@@ -105,35 +125,56 @@ export function DashboardSidebar({ session }: { session: Session }) {
               style={{
                 borderRadius: "var(--radius-sm)",
                 marginBottom: "2px",
-                transition: "background 0.15s, color 0.15s",
               }}
             >
-              <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>{item.icon}</span>
+              <span style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+                {item.icon}
+              </span>
               <span>{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* User info + logout */}
+      {/* Bottom section */}
       <div
         style={{
-          padding: "1rem 1.5rem",
+          padding: "0.75rem 1.5rem 1rem",
           borderTop: "1px solid var(--border-color)",
           marginTop: "auto",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="btn btn-ghost btn-sm btn-block"
+          style={{
+            justifyContent: "flex-start",
+            gap: "0.625rem",
+            marginBottom: "0.75rem",
+            color: "var(--text-secondary)",
+            fontSize: "0.8125rem",
+          }}
+          aria-label={theme === "dark" ? "Włącz tryb jasny" : "Włącz tryb ciemny"}
+        >
+          {theme === "dark" ? <SunIcon size={15} /> : <MoonIcon size={15} />}
+          <span>{theme === "dark" ? "Tryb jasny" : "Tryb ciemny"}</span>
+        </button>
+
+        {/* User info */}
+        <div
+          style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}
+        >
           <div
             style={{
-              width: "36px",
-              height: "36px",
+              width: "34px",
+              height: "34px",
               borderRadius: "50%",
               background: "var(--accent-gradient)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "0.75rem",
+              fontSize: "0.6875rem",
               fontWeight: 700,
               color: "#fff",
               flexShrink: 0,
@@ -143,19 +184,43 @@ export function DashboardSidebar({ session }: { session: Session }) {
             {getInitials(session.user.name)}
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: "0.8125rem", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div
+              style={{
+                fontSize: "0.8125rem",
+                fontWeight: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {session.user.name}
             </div>
-            <span className={`badge ${roleInfo.badge}`} style={{ fontSize: "0.625rem", padding: "0.125rem 0.5rem", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+            <span
+              className={`badge ${roleInfo.badge}`}
+              style={{
+                fontSize: "0.625rem",
+                padding: "0.125rem 0.5rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.25rem",
+              }}
+            >
               {roleInfo.icon}
               {roleInfo.label}
             </span>
           </div>
         </div>
+
+        {/* Logout */}
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           className="btn btn-ghost btn-block btn-sm"
-          style={{ justifyContent: "flex-start", color: "var(--danger)", fontSize: "0.8125rem", gap: "0.5rem" }}
+          style={{
+            justifyContent: "flex-start",
+            color: "var(--danger)",
+            fontSize: "0.8125rem",
+            gap: "0.5rem",
+          }}
         >
           <LogOutIcon size={15} />
           <span>Wyloguj się</span>

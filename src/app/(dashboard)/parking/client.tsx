@@ -3,6 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc";
+import { CarIcon, WheelchairIcon, ZapIcon, LockIcon, XIcon, SearchIcon, MapIcon } from "@/components/ui/Icons";
+
+function SpotTypeIcon({ type, size = 18 }: { type: string; size?: number }) {
+  if (type === "DISABLED") return <WheelchairIcon size={size} />;
+  if (type === "ELECTRIC") return <ZapIcon size={size} />;
+  if (type === "RESERVED") return <LockIcon size={size} />;
+  return <CarIcon size={size} />;
+}
 
 type Availability = { id: string; status: string; startTime: string | Date; endTime: string | Date };
 
@@ -43,12 +51,6 @@ const spotColors: Record<string, string> = {
   unavailable: "var(--spot-unavailable)",
 };
 
-const typeIcons: Record<string, string> = {
-  STANDARD: "🚗",
-  DISABLED: "♿",
-  ELECTRIC: "⚡",
-  RESERVED: "🔒",
-};
 
 function toDate(d: string | Date): Date {
   return d instanceof Date ? d : new Date(d);
@@ -123,7 +125,7 @@ function AvailabilityControls({ spot }: { spot: MySpot }) {
           </div>
           <button
             className="btn btn-sm"
-            style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(225,112,85,0.1)", border: "1px solid rgba(225,112,85,0.3)" }}
+            style={{ fontSize: "0.75rem", color: "var(--danger)", background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}
             onClick={() => clearAvailability.mutate({ spotId: spot.id })}
             disabled={clearAvailability.isPending}
           >
@@ -159,7 +161,7 @@ function AvailabilityControls({ spot }: { spot: MySpot }) {
             {mode === "available" ? "🟢 Udostępnij miejsce" : "🔴 Ustaw niedostępne"}
           </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.375rem" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.375rem" }}>
               <div>
                 <label className="label">Od</label>
                 <input className="input" type="datetime-local" style={{ fontSize: "0.75rem", padding: "0.35rem 0.5rem" }} value={startTime} onChange={(e) => setStartTime(e.target.value)} />
@@ -234,8 +236,8 @@ function SpotGrid({ layout, userId, mySpotIds }: { layout: Layout; userId: strin
                   zIndex: selected?.id === spot.id ? 2 : 1,
                 }}
               >
-                <span style={{ fontSize: `${Math.min(spot.width, spot.height) * CELL * 0.32}px`, lineHeight: 1 }}>
-                  {typeIcons[spot.type] ?? "🚗"}
+                <span style={{ display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>
+                  <SpotTypeIcon type={spot.type} size={Math.max(8, Math.round(Math.min(spot.width, spot.height) * CELL * 0.32))} />
                 </span>
                 <span style={{ fontSize: "9px", color, fontWeight: 700, lineHeight: 1, marginTop: "2px" }}>
                   {spot.number}
@@ -268,14 +270,14 @@ function SpotGrid({ layout, userId, mySpotIds }: { layout: Layout; userId: strin
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
               <strong>Miejsce {selected.number}</strong>
-              <span style={{ marginLeft: "0.5rem", fontSize: "0.8125rem", color: "var(--text-secondary)" }}>
-                {typeIcons[selected.type]} {selected.type}
+              <span style={{ marginLeft: "0.5rem", fontSize: "0.8125rem", color: "var(--text-secondary)", display: "inline-flex", alignItems: "center", gap: "0.25rem" }}>
+                <SpotTypeIcon type={selected.type} size={14} /> {selected.type}
               </span>
               {mySpotIds.has(selected.id) && (
                 <span style={{ marginLeft: "0.75rem", fontSize: "0.75rem", color: "var(--accent-secondary)", fontWeight: 600 }}>← Twoje</span>
               )}
             </div>
-            <button className="btn btn-ghost btn-sm" onClick={() => setSelected(null)}>✕</button>
+            <button className="btn btn-ghost btn-sm" style={{ padding: "0.375rem" }} onClick={() => setSelected(null)}><XIcon size={14} /></button>
           </div>
           <div style={{ marginTop: "0.5rem", fontSize: "0.8125rem" }}>
             <span style={{ color: spotColors[getSpotStatus(selected, now)] }}>
@@ -330,8 +332,8 @@ export function ParkingViewClient({
                   style={{ borderColor: "var(--accent-primary)", borderWidth: "1.5px", padding: "1rem 1.25rem" }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "0.875rem" }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "var(--radius-sm)", background: "rgba(108,92,231,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.375rem", flexShrink: 0 }}>
-                      {typeIcons[spot.type] ?? "🚗"}
+                    <div className="icon-box icon-box-blue">
+                      <SpotTypeIcon type={spot.type} size={22} />
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700 }}>Miejsce {spot.number}</div>
@@ -351,7 +353,7 @@ export function ParkingViewClient({
         </div>
       ) : (
         <div className="card" style={{ marginBottom: "2rem", textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
-          <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🔍</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem", opacity: 0.4 }}><SearchIcon size={36} /></div>
           <p>Nie masz przypisanego miejsca parkingowego.</p>
         </div>
       )}
@@ -360,11 +362,11 @@ export function ParkingViewClient({
       {layouts.length > 0 ? (
         <div>
           {layouts.length > 1 && (
-            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+            <div className="pill-tabs" style={{ marginBottom: "1rem" }}>
               {layouts.map((layout) => (
                 <button
                   key={layout.id}
-                  className={`btn btn-sm ${activeLayout === layout.id ? "btn-primary" : "btn-secondary"}`}
+                  className={`pill-tab${activeLayout === layout.id ? " active" : ""}`}
                   onClick={() => setActiveLayout(layout.id)}
                 >
                   {layout.name}{layout.zone ? ` (${layout.zone})` : ""}
@@ -384,7 +386,7 @@ export function ParkingViewClient({
         </div>
       ) : (
         <div className="card" style={{ textAlign: "center", padding: "3rem", color: "var(--text-muted)" }}>
-          <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🗺️</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.75rem", opacity: 0.4 }}><MapIcon size={48} /></div>
           <p>Brak layoutów parkingu. Zarządca musi najpierw stworzyć układ.</p>
         </div>
       )}

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { AlertIcon, ImportIcon, MapIcon, UsersIcon, CalendarIcon, ParkingIcon, EstateIcon } from "@/components/ui/Icons";
+import { usePageAnimation } from "@/hooks/usePageAnimation";
 
 type Layout = {
   id: string;
@@ -47,12 +49,13 @@ export function ManagerDashboardClient({
   pendingReservations: number;
 }) {
   const router = useRouter();
+  usePageAnimation();
 
   if (managedEstates.length === 0) {
     return (
       <div className="page-container">
         <div className="card" style={{ textAlign: "center", padding: "3rem" }}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>⚠️</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem", opacity: 0.5, color: "var(--warning)" }}><AlertIcon size={48} /></div>
           <h2 style={{ fontWeight: 700, marginBottom: "0.5rem" }}>Brak przypisanych osiedli</h2>
           <p style={{ color: "var(--text-secondary)" }}>
             Skontaktuj się z Super Adminem, aby przypisać Cię do osiedla.
@@ -80,7 +83,7 @@ export function ManagerDashboardClient({
                 onClick={() => router.push(`/manager?estateId=${estate.id}`)}
                 className={`btn ${activeEstate?.id === estate.id ? "btn-primary" : "btn-secondary"}`}
               >
-                <span>🏘️</span>
+                <EstateIcon size={16} />
                 <span>{estate.name}</span>
                 <span style={{ fontSize: "0.75rem", opacity: 0.7 }}>({estate._count.residents})</span>
               </button>
@@ -110,27 +113,35 @@ export function ManagerDashboardClient({
 
           {/* Quick actions */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
-            <Link href={`/manager/import?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
-              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📥</div>
-              <div style={{ fontWeight: 600 }}>Import mieszkańców</div>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>CSV, XLSX, TXT, JSON</div>
-            </Link>
-            <Link href={`/manager/editor?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
-              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🗺️</div>
-              <div style={{ fontWeight: 600 }}>Kreator parkingu</div>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Edytuj layout</div>
-            </Link>
-            <Link href={`/manager/users?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center" }}>
-              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>👥</div>
-              <div style={{ fontWeight: 600 }}>Mieszkańcy</div>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                {activeEstate._count.residents} użytkowników
+            <Link href={`/manager/import?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div className="icon-box icon-box-blue"><ImportIcon size={22} /></div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Import mieszkańców</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>CSV, XLSX, TXT, JSON</div>
               </div>
             </Link>
-            <Link href={`/manager/reservations?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", textAlign: "center", position: "relative" }}>
-              <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>📅</div>
-              <div style={{ fontWeight: 600 }}>Rezerwacje</div>
-              <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>Zarządzaj rezerwacjami</div>
+            <Link href={`/manager/editor?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div className="icon-box icon-box-green"><MapIcon size={22} /></div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Kreator parkingu</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Edytuj layout</div>
+              </div>
+            </Link>
+            <Link href={`/manager/users?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div className="icon-box icon-box-orange"><UsersIcon size={22} /></div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Mieszkańcy</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>
+                  {activeEstate._count.residents} użytkowników
+                </div>
+              </div>
+            </Link>
+            <Link href={`/manager/reservations?estateId=${activeEstate.id}`} className="card" style={{ textDecoration: "none", display: "flex", flexDirection: "column", gap: "0.75rem", position: "relative" }}>
+              <div className="icon-box icon-box-purple"><CalendarIcon size={22} /></div>
+              <div>
+                <div style={{ fontWeight: 600 }}>Rezerwacje</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-muted)", marginTop: "0.2rem" }}>Zarządzaj rezerwacjami</div>
+              </div>
               {pendingReservations > 0 && (
                 <span style={{ position: "absolute", top: "0.625rem", right: "0.75rem", background: "var(--danger)", color: "#fff", borderRadius: "999px", padding: "0 6px", fontSize: "0.6875rem", fontWeight: 700, lineHeight: "1.5" }}>
                   {pendingReservations}
@@ -142,32 +153,32 @@ export function ManagerDashboardClient({
           {/* Stats */}
           <div className="stats-grid" style={{ marginBottom: "2rem" }}>
             <div className="card-stat">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <div className="stat-value" style={{ color: "var(--accent-secondary)" }}>{activeEstate._count.residents}</div>
+                  <div className="stat-value">{activeEstate._count.residents}</div>
                   <div className="stat-label">Mieszkańcy</div>
                 </div>
-                <span style={{ fontSize: "1.75rem", opacity: 0.6 }}>👥</span>
+                <div className="icon-box icon-box-blue"><UsersIcon size={20} /></div>
               </div>
             </div>
             <div className="card-stat">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <div className="stat-value" style={{ color: "var(--info)" }}>{activeEstate._count.parkingLayouts}</div>
+                  <div className="stat-value">{activeEstate._count.parkingLayouts}</div>
                   <div className="stat-label">Layouty parkingu</div>
                 </div>
-                <span style={{ fontSize: "1.75rem", opacity: 0.6 }}>🗺️</span>
+                <div className="icon-box icon-box-green"><MapIcon size={20} /></div>
               </div>
             </div>
             <div className="card-stat">
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
-                  <div className="stat-value" style={{ color: "var(--success)" }}>
+                  <div className="stat-value">
                     {activeEstate.parkingLayouts.reduce((s, l) => s + l._count.spots, 0)}
                   </div>
                   <div className="stat-label">Miejsca parkingowe</div>
                 </div>
-                <span style={{ fontSize: "1.75rem", opacity: 0.6 }}>🅿️</span>
+                <div className="icon-box icon-box-orange"><ParkingIcon size={20} /></div>
               </div>
             </div>
           </div>

@@ -2,11 +2,14 @@
 
 import { SessionProvider } from "next-auth/react";
 import { TRPCProvider } from "@/lib/trpc";
+import { ThemeProvider } from "@/lib/theme";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
-      <TRPCProvider>{children}</TRPCProvider>
-    </SessionProvider>
+    <ThemeProvider>
+      <SessionProvider>
+        <TRPCProvider>{children}</TRPCProvider>
+      </SessionProvider>
+    </ThemeProvider>
   );
 }

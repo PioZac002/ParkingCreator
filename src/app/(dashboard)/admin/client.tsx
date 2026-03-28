@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { EstateIcon, UsersIcon, ParkingIcon, CalendarIcon, TrashIcon, PlusIcon, BuildingIcon } from "@/components/ui/Icons";
+import { EstateIcon, UsersIcon, ParkingIcon, CalendarIcon, TrashIcon, PlusIcon, BuildingIcon, XIcon } from "@/components/ui/Icons";
+import { usePageAnimation } from "@/hooks/usePageAnimation";
 
 type Manager = {
   id: string;
@@ -119,11 +120,13 @@ export function AdminDashboardClient({
     onError: (err) => setMgrError(err.message),
   });
 
+  usePageAnimation();
+
   const statCards = [
-    { label: "Osiedla", value: stats.estateCount, icon: <EstateIcon size={24} />, color: "var(--accent-primary)" },
-    { label: "Użytkownicy", value: stats.userCount, icon: <UsersIcon size={24} />, color: "var(--info)" },
-    { label: "Miejsca parkingowe", value: stats.spotCount, icon: <ParkingIcon size={24} />, color: "var(--success)" },
-    { label: "Rezerwacje", value: stats.reservationCount, icon: <CalendarIcon size={24} />, color: "var(--warning)" },
+    { label: "Osiedla", value: stats.estateCount, icon: <EstateIcon size={22} />, iconClass: "icon-box-blue" },
+    { label: "Użytkownicy", value: stats.userCount, icon: <UsersIcon size={22} />, iconClass: "icon-box-green" },
+    { label: "Miejsca parkingowe", value: stats.spotCount, icon: <ParkingIcon size={22} />, iconClass: "icon-box-orange" },
+    { label: "Rezerwacje", value: stats.reservationCount, icon: <CalendarIcon size={22} />, iconClass: "icon-box-purple" },
   ];
 
   return (
@@ -151,23 +154,23 @@ export function AdminDashboardClient({
           <div key={stat.label} className="card-stat">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
               <div>
-                <div className="stat-value" style={{ color: stat.color }}>{stat.value}</div>
+                <div className="stat-value">{stat.value}</div>
                 <div className="stat-label">{stat.label}</div>
               </div>
-              <span style={{ opacity: 0.4, color: stat.color }}>{stat.icon}</span>
+              <div className={`icon-box ${stat.iconClass}`}>{stat.icon}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: "0.25rem", marginBottom: "1.5rem", background: "var(--bg-secondary)", padding: "0.25rem", borderRadius: "var(--radius-sm)", width: "fit-content" }}>
+      <div className="pill-tabs" style={{ marginBottom: "1.5rem" }}>
         {(["estates", "managers"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`btn btn-sm ${activeTab === tab ? "btn-primary" : "btn-ghost"}`}
-            style={{ borderRadius: "6px", gap: "0.375rem" }}
+            className={`pill-tab${activeTab === tab ? " active" : ""}`}
+            style={{ display: "inline-flex", alignItems: "center", gap: "0.375rem" }}
           >
             {tab === "estates" ? (
               <><EstateIcon size={14} /> Osiedla ({estates.length})</>
@@ -247,10 +250,11 @@ export function AdminDashboardClient({
                           <span>{mgr.name}</span>
                           <button
                             className="btn btn-ghost btn-sm"
-                            style={{ color: "var(--danger)", padding: "0.125rem 0.5rem", fontSize: "0.75rem" }}
+                            style={{ color: "var(--danger)", padding: "0.25rem" }}
+                            title="Usuń zarządcę"
                             onClick={() => removeManager.mutate({ estateId: estate.id, managerId: mgr.id })}
                           >
-                            ✕
+                            <XIcon size={14} />
                           </button>
                         </div>
                       ))}
@@ -273,7 +277,7 @@ export function AdminDashboardClient({
                       >
                         Przypisz
                       </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setAssigningEstate(null)}>✕</button>
+                      <button className="btn btn-ghost btn-sm" style={{ padding: "0.375rem" }} onClick={() => setAssigningEstate(null)}><XIcon size={14} /></button>
                     </div>
                   ) : (
                     <button
@@ -281,7 +285,7 @@ export function AdminDashboardClient({
                       style={{ marginTop: "0.25rem" }}
                       onClick={() => { setAssigningEstate(estate.id); setSelectedManagerId(""); }}
                     >
-                      + Dodaj zarządcę
+                      <PlusIcon size={14} /> Dodaj zarządcę
                     </button>
                   )}
                 </div>
@@ -330,7 +334,7 @@ export function AdminDashboardClient({
             {managers.map((mgr) => (
               <div key={mgr.id} className="card">
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-                  <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: "rgba(116,185,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--info)", flexShrink: 0 }}>
+                  <div className="icon-box icon-box-blue" style={{ borderRadius: "50%" }}>
                     <BuildingIcon size={20} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -339,7 +343,7 @@ export function AdminDashboardClient({
                   </div>
                   <span style={{
                     fontSize: "0.6875rem", fontWeight: 600, padding: "0.2rem 0.5rem", borderRadius: "9999px",
-                    background: mgr.status === "ACTIVE" ? "rgba(0,184,148,0.12)" : "rgba(253,203,110,0.15)",
+                    background: mgr.status === "ACTIVE" ? "rgba(34,197,94,0.12)" : "rgba(245,158,11,0.12)",
                     color: mgr.status === "ACTIVE" ? "var(--success)" : "var(--warning)",
                   }}>
                     {mgr.status === "ACTIVE" ? "Aktywny" : "Oczekuje"}
@@ -353,7 +357,7 @@ export function AdminDashboardClient({
                 ) : (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem" }}>
                     {mgr.managedEstates.map((e) => (
-                      <span key={e.id} style={{ fontSize: "0.75rem", background: "rgba(108,92,231,0.12)", color: "var(--accent-secondary)", padding: "0.2rem 0.6rem", borderRadius: "9999px" }}>
+                      <span key={e.id} style={{ fontSize: "0.75rem", background: "rgba(37,99,235,0.12)", color: "var(--accent-secondary)", padding: "0.2rem 0.6rem", borderRadius: "9999px" }}>
                         {e.name}
                       </span>
                     ))}
